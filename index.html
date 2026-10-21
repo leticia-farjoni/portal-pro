@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reembolsos</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F2F4F7; --sheet:#FFFFFF; --ink:#18202B; --ink-2:#4A5563; --ink-3:#6B7684; --rule:#D6DCE4;
+  --carbon:#2F45B5; --carbon-ink:#FFFFFF; --carbon-soft:#E6EAFA;
+  --ok:#1F7A4D; --ok-soft:#E2F2E9; --bad:#B42318; --bad-soft:#FBE8E6; --warn:#8F5400; --warn-soft:#FBEFD9;
+  --focus:#2F45B5;
+  color-scheme: light;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#10151C; --sheet:#19202A; --ink:#E6EBF1; --ink-2:#A6B0BD; --ink-3:#8692A0; --rule:#2B3441;
+    --carbon:#93A3FF; --carbon-ink:#0E1430; --carbon-soft:#222B4C;
+    --ok:#62C99B; --ok-soft:#163126; --bad:#FF8B7B; --bad-soft:#3A1C19; --warn:#F1B252; --warn-soft:#382A12;
+    --focus:#93A3FF; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10151C; --sheet:#19202A; --ink:#E6EBF1; --ink-2:#A6B0BD; --ink-3:#8692A0; --rule:#2B3441;
+  --carbon:#93A3FF; --carbon-ink:#0E1430; --carbon-soft:#222B4C;
+  --ok:#62C99B; --ok-soft:#163126; --bad:#FF8B7B; --bad-soft:#3A1C19; --warn:#F1B252; --warn-soft:#382A12;
+  --focus:#93A3FF; color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:0 20px 64px}
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:28px 0 18px;border-bottom:2px solid var(--ink)}
+.brand{font-weight:700;font-size:28px;letter-spacing:-0.02em;line-height:1}
+.brand small{display:block;font-weight:400;font-size:14px;color:var(--ink-2);letter-spacing:0;margin-top:6px}
+.who{font-size:14px;color:var(--ink-2);text-align:right}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding:12px 0 0;margin-bottom:24px;border-bottom:1px solid var(--rule)}
+nav.tabs button{background:none;border:0;padding:10px 14px;font-size:15px;color:var(--ink-2);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+nav.tabs button[aria-current="page"]{color:var(--ink);font-weight:600;border-bottom-color:var(--carbon)}
+nav.tabs .count{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--carbon);color:var(--carbon-ink);font-size:12px;font-weight:600;text-align:center;line-height:20px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;flex-wrap:wrap}
+h2{font-size:20px;font-weight:600;margin:0;letter-spacing:-0.01em}
+h3{font-size:16px;font-weight:600;margin:28px 0 10px}
+.muted{color:var(--ink-2)}
+.small{font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:6px;border:1px solid var(--rule);background:var(--sheet);padding:9px 16px;font-size:15px;font-weight:500;cursor:pointer;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--carbon);border-color:var(--carbon);color:var(--carbon-ink)}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:var(--sheet)}
+.btn.bad{color:var(--bad);border-color:var(--bad)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.link{border:0;background:none;padding:0;color:var(--carbon);text-decoration:underline;text-underline-offset:3px}
+.notice{border:1px solid var(--rule);border-left:4px solid var(--warn);background:var(--sheet);padding:12px 16px;margin:0 0 16px;font-size:15px}
+.notice.err{border-left-color:var(--bad)}
+.notice.ok{border-left-color:var(--ok)}
+.empty{padding:40px 20px;text-align:center;color:var(--ink-2);border:1px dashed var(--rule);background:var(--sheet)}
+
+/* Canhoto */
+.list{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:118px 1fr auto;align-items:stretch;width:100%;background:var(--sheet);border:1px solid var(--rule);border-radius:4px;padding:0;text-align:left;cursor:pointer;position:relative}
+.row:hover{border-color:var(--ink-3)}
+.row[aria-expanded="true"]{border-color:var(--ink);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.stub{padding:14px 14px;border-right:2px dashed var(--rule);position:relative;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.stub::before,.stub::after{content:"";position:absolute;right:-8px;width:14px;height:14px;border-radius:50%;background:var(--paper);border:1px solid var(--rule)}
+.stub::before{top:-8px}.stub::after{bottom:-8px}
+.code{font-weight:600;font-size:13px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.date{font-size:13px;color:var(--ink-2)}
+.rbody{padding:14px 16px;min-width:0}
+.desc{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:14px;color:var(--ink-2);display:flex;gap:14px;flex-wrap:wrap;margin-top:2px}
+.rend{padding:14px 16px;display:flex;flex-direction:column;align-items:flex-end;justify-content:center;gap:6px}
+.amt{font-weight:700;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{font-size:12px;font-weight:600;padding:2px 8px;border-radius:3px;border:1px solid currentColor;white-space:nowrap}
+.s-aguardando_gestor,.s-aguardando_financeiro{color:var(--carbon)}
+.s-aprovado{color:var(--ok)}
+.s-pago{color:var(--ok);background:var(--ok-soft)}
+.s-devolvido{color:var(--warn)}
+.s-recusado{color:var(--bad)}
+.flag{font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-soft);padding:1px 6px;border-radius:3px}
+
+/* Detalhe */
+.detail{background:var(--sheet);border:1px solid var(--ink);border-top:0;margin-top:-10px;padding:22px 22px 24px;position:relative;overflow:hidden}
+.stamp{position:absolute;top:18px;right:22px;transform:rotate(-7deg);border:3px double currentColor;border-radius:6px;padding:6px 14px;font-weight:700;font-size:20px;letter-spacing:.04em;opacity:.9;pointer-events:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px 24px;margin:0 0 18px;padding-right:180px}
+.grid dt{font-size:13px;color:var(--ink-2)}
+.grid dd{margin:2px 0 0;font-weight:500;overflow-wrap:anywhere}
+.full{grid-column:1/-1}
+.timeline{list-style:none;margin:0;padding:0;border-left:2px solid var(--rule)}
+.timeline li{padding:0 0 12px 16px;position:relative;font-size:14px}
+.timeline li::before{content:"";position:absolute;left:-6px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--sheet);border:2px solid var(--ink-3)}
+.timeline .when{color:var(--ink-2)}
+.timeline .cmt{display:block;margin-top:2px;color:var(--ink);font-style:italic}
+.actions{margin-top:18px;padding-top:18px;border-top:1px solid var(--rule)}
+.actions .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.progress{font-size:14px;color:var(--ink-2);margin-top:10px}
+
+/* Formulário */
+form.sheet,.panel{background:var(--sheet);border:1px solid var(--rule);border-top:4px solid var(--carbon);padding:22px;margin-bottom:24px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.wide{grid-column:1/-1}
+label{font-size:14px;font-weight:500}
+.hint{font-size:13px;color:var(--ink-2)}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;border:1px solid var(--rule);background:var(--paper);border-radius:4px;padding:9px 11px;font-size:15px}
+textarea{min-height:76px;resize:vertical}
+input[type=file]{font-size:14px}
+.err{font-size:13px;color:var(--bad)}
+.picker{position:relative}
+.pres{border:1px solid var(--rule);background:var(--sheet);border-radius:4px;margin-top:4px;max-height:220px;overflow:auto}
+.pres button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 11px;cursor:pointer;font-size:14px}
+.pres button:hover,.pres button:focus-visible{background:var(--carbon-soft)}
+.pres .em{color:var(--ink-2);font-size:13px}
+.radios{display:flex;gap:22px;padding:8px 0}
+.radios label{font-weight:400;display:flex;gap:8px;align-items:center;cursor:pointer}
+.lbl{font-size:14px;font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--carbon-soft);border-radius:4px;padding:4px 6px 4px 10px;font-size:14px}
+.chip button{border:0;background:none;cursor:pointer;color:var(--ink-2);font-size:16px;line-height:1;padding:0 4px}
+.formfoot{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+fieldset.item{border:1px solid var(--rule);border-left:3px solid var(--carbon);border-radius:4px;padding:14px 16px 16px;margin:0 0 12px;position:relative;min-width:0}
+fieldset.item legend{font-weight:600;font-size:14px;padding:0 6px}
+fieldset.item .rm{position:absolute;top:10px;right:14px;font-size:14px}
+.deadline{margin:-6px 0 16px;font-size:14px;color:var(--ink-2);border-left:3px solid var(--warn);padding:2px 0 2px 10px}
+.totalbar{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-top:18px;padding:14px 0 0;border-top:2px solid var(--ink)}
+.totalbar strong{font-size:26px;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;margin:0 0 6px}
+table.items{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+table.items th{text-align:left;font-weight:500;color:var(--ink-2);border-bottom:1px solid var(--rule);padding:6px 8px}
+table.items td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:top}
+table.items .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.items .n{width:28px;color:var(--ink-2)}
+table.items tfoot td{font-weight:700;border-bottom:0;border-top:2px solid var(--ink)}
+.totals{display:flex;gap:28px;flex-wrap:wrap;margin:0 0 18px}
+.totals div{font-size:14px;color:var(--ink-2)}
+.totals strong{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+.folderopt{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--rule)}
+.folderopt .path{font-size:13px;color:var(--ink-2);overflow-wrap:anywhere}
+.limits{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 18px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (max-width:640px){
+  .row{grid-template-columns:1fr auto}
+  .stub{display:none}
+  .fields{grid-template-columns:1fr}
+  .grid{padding-right:0;padding-top:46px}
+  .stamp{font-size:16px}
+  header.top{flex-direction:column;align-items:flex-start}
+  .who{text-align:left}
+}
+@media (prefers-reduced-motion: no-preference){
+  .stamp{animation:thud .28s ease-out}
+  @keyframes thud{from{transform:rotate(-7deg) scale(1.35);opacity:0}to{transform:rotate(-7deg) scale(1);opacity:.9}}
+}
+
+.authwrap{max-width:460px;margin:24px auto 0}
+.fields.one{grid-template-columns:1fr}
+.authlinks{display:flex;gap:18px;flex-wrap:wrap}
+.panel.tight{padding:4px 18px;border-top-width:1px}
+.userrow{display:grid;grid-template-columns:1fr auto auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--rule)}
+.userrow:last-child{border-bottom:0}
+.uact{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.uact select{width:auto}
+.u-pendente{color:var(--warn)}.u-aprovado{color:var(--ok)}.u-bloqueado{color:var(--bad)}
+code{background:var(--paper);padding:1px 5px;border-radius:3px;font-size:14px}
+@media (max-width:640px){.userrow{grid-template-columns:1fr}.uact{justify-content:flex-start}}
+
+.crumb{background:none;border:0;padding:12px 0 0;color:var(--carbon);font-size:14px;font-weight:500;cursor:pointer}
+.crumb:hover{text-decoration:underline;text-underline-offset:3px}
+.hello{margin:8px 0 22px}
+.hello h2{font-size:26px}
+.hello p{margin:4px 0 0}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px}
+.proc{display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;background:var(--sheet);border:1px solid var(--rule);border-top:4px solid var(--carbon);border-radius:4px;padding:22px;min-height:230px;cursor:pointer;color:var(--ink);transition:border-color .15s, transform .15s}
+.proc:hover{border-color:var(--ink);border-top-color:var(--carbon)}
+.proc.small{min-height:0;border-top-color:var(--ink-3)}
+.proc .ico{width:44px;height:44px;color:var(--carbon)}
+.proc .ico svg{width:100%;height:100%}
+.ptitle{font-size:19px;font-weight:700;letter-spacing:-0.01em}
+.pdesc{font-size:15px;color:var(--ink-2)}
+.pstatus{display:flex;flex-wrap:wrap;gap:6px}
+.pstatus:empty{display:none}
+.pill{font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--carbon-soft);color:var(--carbon)}
+.pill.hot{background:var(--carbon);color:var(--carbon-ink)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pgo{margin-top:auto;font-weight:600;color:var(--carbon);font-size:15px}
+.admin-h{margin-top:36px}
+@media (prefers-reduced-motion: no-preference){.proc:hover{transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand" id="brand"></div>
+    <div class="who" id="who"></div>
+  </header>
+  <div id="crumb"></div>
+  <nav class="tabs" id="tabs" aria-label="Seções" hidden></nav>
+  <div id="banner"></div>
+  <main id="view"><div class="empty">Carregando…</div></main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   CONFIGURAÇÃO — cole aqui os dados do seu projeto Supabase
+   (Project Settings → API → Project URL e a chave "anon public")
+   ===================================================================== */
+const SUPABASE_URL = "https://wolbdazxefiqcvjzzhhq.supabase.co/rest/v1/";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvbGJkYXp4ZWZpcWN2anp6aGhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1Nzc0NTYsImV4cCI6MjEwODE1MzQ1Nn0.3yC6BURjxZoCh22Uu15BpUD9M00JmUbBvmeUwvFd2wk";
+/* ===================================================================== */
+
+const CATEGORIES = ["Alimentação","Estacionamento","Hospedagem","Km","Pedágio","Uber","Outros"];
+const COST_CENTERS = ["Especialistas","PRÓ Gestão","Reunião da Rede","Expo Grandes Marcas","Prospecção","Relacionamento","Outros","Negociação com Fornecedores"];
+const KM_RATE_DEFAULT = 1.10;
+const BUCKET = "comprovantes";
+const STATUS = {
+  aguardando_financeiro:"Com o financeiro",
+  aprovado:"Aprovado, a pagar",
+  pago:"Pago",
+  devolvido:"Devolvido para ajuste",
+  recusado:"Recusado"
+};
+const ACTION_LABEL = {
+  enviado:"Enviou a solicitação", reenviado:"Reenviou com ajustes",
+  aprovado:"Aprovou", devolvido:"Devolveu para ajuste", recusado:"Recusou", pago:"Registrou o pagamento"
+};
+const ROLE_LABEL = { colaborador:"Colaborador", financeiro:"Financeiro", admin:"Administrador" };
+const USER_STATUS = { pendente:"Aguardando aprovação", aprovado:"Aprovado", bloqueado:"Bloqueado" };
+
+/* ---------- Portal: nome e processos disponíveis ----------
+   Para incluir um processo novo, acrescente um item em PROCESSES
+   e crie a tela correspondente em renderView(). */
+const PORTAL_NAME = "Portal de Processos";
+const PORTAL_TAGLINE = "Processos internos da empresa em um só lugar";
+const PROCESSES = [
+  { id:"reembolsos", title:"Reembolso de despesas",
+    desc:"Solicite o reembolso de despesas de trabalho, anexe os comprovantes e acompanhe a análise do financeiro.",
+    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M10 4h20v32l-3.3-2.5L23.3 36 20 33.5 16.7 36l-3.4-2.5L10 36z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M15 12h10M15 17h10M15 22h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }
+];
+const ROUTES = ["home","reembolsos","usuarios"];
+
+const CONFIGURED = /^https:\/\//.test(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 30;
+const sb = CONFIGURED ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+const S = {
+  session:null, profile:null, profileErr:null, settings:{km_rate:KM_RATE_DEFAULT, limits:{}},
+  requests:[], reqLoaded:false, users:[], loadErr:null,
+  module:"home", tab:"minhas", openId:null, showForm:false, editId:null,
+  form:{}, formErr:{}, formBusy:false, formSteps:[],
+  comment:{}, payDate:{}, busy:{}, steps:{}, draft:null, flash:null,
+  authMode:"login", auth:{}, authErr:null, authMsg:null, authBusy:false
+};
+
+/* ---------- utilidades ---------- */
+const $ = s => document.querySelector(s);
+const h = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const brl = n => (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+function isoLocal(d){ const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+const todayISO = () => isoLocal(new Date());
+const fmtDate = iso => { if(!iso) return ""; const [y,m,d]=String(iso).slice(0,10).split("-"); return `${d}/${m}/${y}`; };
+const fmtDateShort = iso => { if(!iso) return ""; const d=new Date(String(iso).length===10?iso+"T12:00:00":iso); return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"}).replace(".",""); };
+const fmtWhen = iso => new Date(iso).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+function parseMoney(s){
+  s = String(s??"").replace(/R\$|\s/g,"");
+  if(!s) return NaN;
+  if(s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
+  else if(/\.\d{3}($|\.)/.test(s)) s = s.replace(/\./g,"");
+  return Math.round(parseFloat(s)*100)/100;
+}
+const myId = () => S.session && S.session.user && S.session.user.id;
+const role = () => S.profile && S.profile.role;
+const isStaff = () => role()==="financeiro" || role()==="admin";
+const isAdmin = () => role()==="admin";
+const isMine = r => r.requester_id===myId();
+const reqName = r => (r.requester && r.requester.full_name) || (isMine(r) && S.profile ? S.profile.full_name : "Colaborador");
+const lastReturn = r => (r.history||[]).filter(e=>e.action==="devolvido").pop();
+function dbMessage(e){
+  const m = (e && (e.message||e.error_description||e.msg)) || "";
+  if(/row-level security|permission denied/i.test(m)) return "Você não tem permissão para esta ação.";
+  if(/Failed to fetch|NetworkError/i.test(m)) return "Sem conexão com o servidor. Verifique a internet e tente de novo.";
+  return m || "Algo deu errado. Tente de novo.";
+}
+
+/* ---------- prazo: dia 5 do mês seguinte ---------- */
+function deadlineFor(ym){ const [y,m]=ym.split("-").map(Number); return isoLocal(new Date(y,m,5,12)); }
+function monthOpen(dateISO, refISO){ return refISO <= deadlineFor(dateISO.slice(0,7)); }
+function monthName(iso){ return new Date(iso.slice(0,7)+"-15T12:00:00").toLocaleDateString("pt-BR",{month:"long",year:"numeric"}); }
+function oldestOpenDate(refISO){
+  const d=new Date(refISO+"T12:00:00"); const prev=isoLocal(new Date(d.getFullYear(), d.getMonth()-1, 1, 12));
+  return monthOpen(prev, refISO) ? prev : refISO.slice(0,8)+"01";
+}
+function deadlineHint(refISO){
+  const min=oldestOpenDate(refISO), cur=refISO.slice(0,7);
+  const curTxt=`despesas de ${monthName(refISO)} até ${fmtDate(deadlineFor(cur))}`;
+  if(min.slice(0,7)!==cur) return `Prazo: despesas de ${monthName(min)} podem ser enviadas até ${fmtDate(deadlineFor(min.slice(0,7)))}, e ${curTxt}.`;
+  return `Prazo: ${curTxt}. Despesas de meses anteriores já não podem ser enviadas.`;
+}
+
+/* ---------- itens ---------- */
+const kmRate = () => Number(S.settings.km_rate) || KM_RATE_DEFAULT;
+const limitOf = cat => Number((S.settings.limits||{})[cat])||0;
+function itemValue(it){
+  if(it.category==="Km"){ const km=parseMoney(it.km); return km>0 ? Math.round(km*kmRate()*100)/100 : 0; }
+  const v=parseMoney(it.amount); return v>0 ? v : 0;
+}
+const kmHint = it => { const v=itemValue(it); return v>0 ? `Total a receber: ${brl(v)}` : "Informe os km para calcular o valor"; };
+const kmText = it => it.km ? `${String(it.km).replace(".",",")} km` : "";
+const formTotal = () => Math.round((S.form.items||[]).reduce((s,it)=>s+itemValue(it),0)*100)/100;
+function dateRange(r){
+  const ds=(r.items||[]).map(i=>i.date).filter(Boolean).sort();
+  if(!ds.length) return "";
+  return ds[0]===ds[ds.length-1] ? fmtDate(ds[0]) : `${fmtDate(ds[0])} a ${fmtDate(ds[ds.length-1])}`;
+}
+
+/* ---------- comprovantes ---------- */
+async function shrinkImage(file, target){
+  let bmp;
+  try{ bmp = await createImageBitmap(file); }catch(e){ throw new Error("Não foi possível ler essa imagem. Envie em JPG, PNG ou PDF."); }
+  let scale=Math.min(1, 2200/Math.max(bmp.width,bmp.height)), q=0.85;
+  for(let i=0;i<7;i++){
+    const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(bmp.width*scale)); c.height=Math.max(1,Math.round(bmp.height*scale));
+    const ctx=c.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,c.width,c.height); ctx.drawImage(bmp,0,0,c.width,c.height);
+    const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",q));
+    if(blob && blob.size<=target) return blob;
+    q=Math.max(0.5,q-0.1); scale*=0.82;
+  }
+  throw new Error("A imagem continua grande demais mesmo comprimida. Tire uma foto mais próxima do comprovante.");
+}
+const asciiName = s => s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9._-]+/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,80);
+async function uploadReceipt(file, folder, n, item){
+  let blob=file, type=(file.type||"").toLowerCase(), ext=(file.name.split(".").pop()||"").toLowerCase();
+  if(!type && ext==="pdf") type="application/pdf";
+  const isImg=/^image\//.test(type);
+  if(isImg && (file.size>1500000 || !/^image\/(jpeg|png|webp)$/.test(type))){ blob=await shrinkImage(file,1500000); type="image/jpeg"; ext="jpg"; }
+  else if(!isImg && type!=="application/pdf") throw new Error("Envie o comprovante em JPG, PNG ou PDF.");
+  if(blob.size>20*1048576) throw new Error("O arquivo passa de 20 MB. Comprima o PDF ou envie uma foto.");
+  const name=`${String(n).padStart(2,"0")}-${asciiName(item.category)}-${item.date}.${ext}`;
+  const path=`${myId()}/${folder}/${Date.now().toString(36)}-${name}`;
+  const { error } = await sb.storage.from(BUCKET).upload(path, blob, { contentType:type, upsert:false });
+  if(error) throw new Error("Não foi possível enviar o comprovante: "+dbMessage(error));
+  return { receipt_path:path, receipt_name:name, receipt_type:type };
+}
+async function openReceipt(path){
+  const w = window.open("", "_blank");
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrl(path, 600);
+  if(error || !data){ if(w) w.close(); S.flash={kind:"warn", text:"Não foi possível abrir o comprovante: "+dbMessage(error)}; render(); return; }
+  if(w) w.location = data.signedUrl; else location.href = data.signedUrl;
+}
+
+/* ---------- carregamento ---------- */
+async function loadProfile(){
+  const { data, error } = await sb.from("profiles").select("*").eq("id", myId()).maybeSingle();
+  if(error){ S.profileErr=dbMessage(error); S.profile=null; return; }
+  S.profile=data; S.profileErr = data ? null : "Seu perfil ainda não foi criado. Saia e entre de novo em alguns segundos.";
+}
+async function loadSettings(){
+  const { data } = await sb.from("settings").select("*").eq("id",1).maybeSingle();
+  if(data) S.settings={km_rate:Number(data.km_rate)||KM_RATE_DEFAULT, limits:data.limits||{}};
+}
+async function loadRequests(){
+  const { data, error } = await sb.from("requests")
+    .select("*, requester:profiles!requests_requester_id_fkey(full_name,email)")
+    .order("updated_at",{ascending:false});
+  if(error){ S.loadErr=dbMessage(error); } else { S.requests=data||[]; S.loadErr=null; }
+  S.reqLoaded=true;
+}
+async function loadUsers(){
+  if(!isAdmin()) return;
+  const { data } = await sb.from("profiles").select("*").order("created_at",{ascending:false});
+  S.users=data||[];
+}
+async function loadAll(){
+  await loadProfile();
+  if(S.profile && S.profile.status==="aprovado"){
+    await Promise.all([loadSettings(), loadRequests(), loadUsers()]);
+  }
+  render();
+}
+async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers()]); render(); } }
+
+/* ---------- ações ---------- */
+const stepsHTML = steps => steps.length ? `<div class="progress" role="status">${steps.map(h).join("<br>")}</div>` : "";
+
+async function submitForm(){
+  const f=S.form, err={};
+  const editing = S.editId ? S.requests.find(r=>r.id===S.editId) : null;
+  const ref = editing ? isoLocal(new Date(editing.created_at)) : todayISO();
+  const items = f.items||[];
+  if(!f.title || f.title.trim().length<3) err.title="Dê um título curto, por exemplo “Visita a clientes em Campinas”.";
+  if(!f.cost_center) err.cost_center="Selecione o motivo ou centro de custo.";
+  if(!f.partner || f.partner.trim().length<2) err.partner="Informe o parceiro e loja, fornecedor, prospect ou evento.";
+  if(f.on_behalf==="sim" && !(f.on_behalf_of||"").trim()) err.on_behalf_of="Informe para quem é o reembolso.";
+  if(!f.pix || f.pix.trim().length<4) err.pix="Informe a chave Pix ou a conta bancária para o pagamento.";
+  if(!items.length) err.items="Inclua pelo menos uma despesa.";
+  items.forEach((it,i)=>{
+    const k=x=>`i${i}_${x}`;
+    if(!it.date) err[k("date")]="Informe a data.";
+    else if(it.date>todayISO()) err[k("date")]="A data não pode estar no futuro.";
+    else if(!monthOpen(it.date, ref)) err[k("date")]=`O prazo para despesas de ${monthName(it.date)} terminou em ${fmtDate(deadlineFor(it.date.slice(0,7)))}.`;
+    if(!it.category) err[k("category")]="Escolha a categoria.";
+    if(it.category==="Km"){ if(!(parseMoney(it.km)>0)) err[k("km")]="Informe os quilômetros rodados, ex.: 120."; }
+    else if(!(parseMoney(it.amount)>0)) err[k("amount")]="Informe o valor, ex.: 89,90.";
+    if(!it.description || it.description.trim().length<3) err[k("description")] = it.category==="Outros" ? "Em “Outros”, descreva qual é a despesa." : it.category==="Km" ? "Informe o trajeto, ex.: escritório até cliente X, ida e volta." : "Descreva a despesa.";
+    if(!it.file && !it.receipt_path && it.category!=="Km") err[k("receipt")]="Anexe o comprovante.";
+  });
+  S.formErr=err;
+  if(Object.keys(err).length){ renderForm(); const first=document.querySelector("form.sheet .err"); if(first) first.scrollIntoView({block:"center"}); return; }
+
+  S.formBusy=true; S.formSteps=[]; renderForm();
+  const step = t => { S.formSteps.push(t); renderForm(); };
+  try{
+    const folder = editing ? editing.id : (f.folder || (f.folder = crypto.randomUUID()));
+    const withFiles=items.filter(it=>it.file).length; let sent=0;
+    for(let i=0;i<items.length;i++){
+      const it=items[i];
+      if(it.file){
+        sent++; step(`Enviando comprovante ${sent} de ${withFiles}…`);
+        Object.assign(it, await uploadReceipt(it.file, folder, i+1, it));
+        it.file=null;
+      }
+    }
+    const clean=items.map(it=>{ const isKm=it.category==="Km";
+      return { date:it.date, category:it.category, amount:itemValue(it), km:isKm?parseMoney(it.km):null, description:it.description.trim(),
+        receipt_path:it.receipt_path||null, receipt_name:it.receipt_name||null, receipt_type:it.receipt_type||null }; });
+    const payload={ title:f.title.trim(), cost_center:f.cost_center, partner:f.partner.trim(), on_behalf:f.on_behalf==="sim",
+      on_behalf_of:f.on_behalf==="sim"?(f.on_behalf_of||"").trim():null, pix:f.pix.trim(), items:clean };
+    step("Registrando a solicitação…");
+    const now=new Date().toISOString();
+    let res;
+    if(editing){
+      const history=[...(editing.history||[]), {at:now, by_name:S.profile.full_name, action:"reenviado", comment:(f.note||"").trim()}];
+      res = await sb.from("requests").update({...payload, status:"aguardando_financeiro", history}).eq("id", editing.id).select().single();
+    } else {
+      res = await sb.from("requests").insert({...payload, history:[{at:now, by_name:S.profile.full_name, action:"enviado", comment:""}]}).select().single();
+    }
+    if(res.error) throw res.error;
+    S.flash={kind:"ok", text:`Solicitação ${res.data.code} de ${brl(res.data.total)} enviada para o financeiro.`};
+    S.showForm=false; S.editId=null; S.form={}; S.formErr={}; S.openId=res.data.id;
+    await loadRequests();
+  }catch(e){
+    S.formErr={submit: e instanceof Error && !e.code ? e.message : dbMessage(e)};
+  }finally{ S.formBusy=false; S.formSteps=[]; render(); }
+}
+
+async function act(id, kind){
+  const r=S.requests.find(x=>x.id===id); if(!r) return;
+  const comment=(S.comment[id]||"").trim();
+  if((kind==="devolvido"||kind==="recusado") && comment.length<3){
+    S.steps[id]=["Escreva um comentário explicando o motivo."]; render(); const t=document.getElementById("cmt-"+id); if(t) t.focus(); return;
+  }
+  const upd={ status:kind, history:[...(r.history||[]), {at:new Date().toISOString(), by_name:S.profile.full_name, action:kind, comment}] };
+  if(kind==="pago") upd.paid_date=S.payDate[id]||todayISO();
+  S.busy[id]=kind; S.steps[id]=["Salvando…"]; render();
+  const { error } = await sb.from("requests").update(upd).eq("id", id);
+  if(error){ S.steps[id]=[dbMessage(error)]; }
+  else { S.comment[id]=""; S.steps[id]=[]; S.flash={kind:"ok", text:`${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
+  S.busy[id]=null; render();
+}
+
+function downloadSheet(){
+  const histAt=(r,a)=>{ const e=(r.history||[]).filter(x=>x.action===a).pop(); return e?fmtDate(e.at.slice(0,10)):""; };
+  const reqs=[...S.requests].sort((a,b)=>(a.created_at||"").localeCompare(b.created_at||""));
+  const rows=reqs.map(r=>({
+    "Código":r.code, "Título":r.title, "Solicitante":reqName(r), "E-mail":(r.requester&&r.requester.email)||"",
+    "Em nome de outro colaborador":r.on_behalf?"Sim":"Não", "Para quem":r.on_behalf_of||"",
+    "Motivo / centro de custo":r.cost_center, "Parceiro, fornecedor, prospect ou evento":r.partner,
+    "Período":dateRange(r), "Qtd. de despesas":(r.items||[]).length, "Total (R$)":Number(r.total)||0,
+    "Status":STATUS[r.status]||r.status, "Pix ou conta bancária":r.pix,
+    "Enviado em":fmtDate(r.created_at.slice(0,10)), "Aprovado em":histAt(r,"aprovado"), "Pago em":r.paid_date?fmtDate(r.paid_date):""
+  }));
+  const irows=[]; reqs.forEach(r=>(r.items||[]).forEach((it,i)=>irows.push({
+    "Código":r.code, "Item":i+1, "Data":fmtDate(it.date), "Categoria":it.category, "Descrição":it.description,
+    "Km rodados":it.km||"", "Valor (R$)":Number(it.amount)||0, "Acima do teto":it.over_limit?"Sim":"",
+    "Solicitante":reqName(r), "Status":STATUS[r.status]||r.status, "Comprovante":it.receipt_path?"Anexado":""
+  })));
+  const money=(ws,n,col)=>{ for(let i=0;i<n;i++){ const c=ws[XLSX.utils.encode_cell({r:i+1,c:col})]; if(c) c.z='"R$" #,##0.00'; } };
+  const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{"Código":""}]); money(ws,rows.length,10);
+  ws["!cols"]=[16,30,24,28,12,22,24,30,24,10,14,20,30,12,12,12].map(w=>({wch:w}));
+  const wi=XLSX.utils.json_to_sheet(irows.length?irows:[{"Código":""}]); money(wi,irows.length,6);
+  wi["!cols"]=[16,6,12,16,40,10,14,12,24,20,12].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Solicitações"); XLSX.utils.book_append_sheet(wb,wi,"Despesas");
+  XLSX.writeFile(wb, `Controle de reembolsos ${todayISO()}.xlsx`);
+}
+
+/* ---------- autenticação ---------- */
+const redirectTo = () => location.origin + location.pathname;
+function authErrorMessage(e){
+  const m=(e&&e.message)||"";
+  if(/invalid login credentials/i.test(m)) return "E-mail ou senha incorretos.";
+  if(/email not confirmed/i.test(m)) return "Confirme seu e-mail pelo link que enviamos antes de entrar.";
+  if(/already registered|already exists/i.test(m)) return "Este e-mail já tem cadastro. Use “Entrar” ou “Esqueci minha senha”.";
+  if(/rate limit|too many/i.test(m)) return "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.";
+  if(/password/i.test(m) && /least|short|weak/i.test(m)) return "A senha precisa ter pelo menos 8 caracteres.";
+  return dbMessage(e);
+}
+async function authSubmit(){
+  const a=S.auth, mode=S.authMode;
+  S.authErr=null; S.authMsg=null;
+  const email=(a.email||"").trim().toLowerCase();
+  if(mode!=="recovery" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ S.authErr="Informe um e-mail válido."; return renderAuth(); }
+  if(mode==="signup"){
+    if(!(a.name||"").trim()) { S.authErr="Informe seu nome completo."; return renderAuth(); }
+    if((a.password||"").length<8){ S.authErr="A senha precisa ter pelo menos 8 caracteres."; return renderAuth(); }
+    if(a.password!==a.password2){ S.authErr="As senhas não conferem."; return renderAuth(); }
+  }
+  if(mode==="recovery"){
+    if((a.password||"").length<8){ S.authErr="A senha precisa ter pelo menos 8 caracteres."; return renderAuth(); }
+    if(a.password!==a.password2){ S.authErr="As senhas não conferem."; return renderAuth(); }
+  }
+  S.authBusy=true; renderAuth();
+  try{
+    if(mode==="login"){
+      const { error } = await sb.auth.signInWithPassword({ email, password:a.password||"" });
+      if(error) throw error;
+    } else if(mode==="signup"){
+      const { data, error } = await sb.auth.signUp({ email, password:a.password, options:{ data:{ full_name:a.name.trim() }, emailRedirectTo:redirectTo() } });
+      if(error) throw error;
+      if(!data.session){ S.authMode="login"; S.auth={email}; S.authMsg=`Enviamos um link de confirmação para ${email}. Depois de confirmar, seu acesso aguarda a aprovação da administradora.`; }
+    } else if(mode==="forgot"){
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo:redirectTo() });
+      if(error) throw error;
+      S.authMode="login"; S.authMsg=`Se houver uma conta com ${email}, enviamos um link para criar uma nova senha.`;
+    } else if(mode==="recovery"){
+      const { error } = await sb.auth.updateUser({ password:a.password });
+      if(error) throw error;
+      S.authMode="login"; S.auth={}; S.flash={kind:"ok", text:"Senha alterada."};
+      await loadAll(); return;
+    }
+  }catch(e){ S.authErr=authErrorMessage(e); }
+  finally{ S.authBusy=false; }
+  render();
+}
+
+/* ---------- renderização ---------- */
+function preserveFocus(fn){
+  const a=document.activeElement, id=a&&a.id, s=a&&a.selectionStart, e=a&&a.selectionEnd;
+  fn();
+  if(id){ const n=document.getElementById(id); if(n && n!==document.activeElement){ n.focus(); try{ if(s!=null) n.setSelectionRange(s,e); }catch(_){} } }
+}
+function render(){ preserveFocus(()=>{ renderHeader(); renderTabs(); renderBanner(); renderView(); }); }
+
+function go(mod){
+  if(!ROUTES.includes(mod)) mod="home";
+  S.module=mod; S.openId=null; S.draft=null; S.flash=null;
+  if(mod!=="reembolsos"){ S.showForm=false; S.editId=null; S.form={}; S.formErr={}; }
+  const want = mod==="home" ? "" : "#"+mod;
+  if(location.hash!==want) history.pushState(null, "", location.pathname + location.search + want);
+  render(); window.scrollTo({top:0});
+}
+function routeFromHash(){
+  const hsh=location.hash.replace(/^#/,"");
+  if(/access_token|error|type=/.test(hsh)) return;
+  S.module = ROUTES.includes(hsh) ? hsh : "home";
+}
+window.addEventListener("popstate", ()=>{ routeFromHash(); S.openId=null; render(); });
+function moduleInfo(){ return PROCESSES.find(p=>p.id===S.module) || (S.module==="usuarios" ? {title:"Usuários"} : null); }
+function renderHeader(){
+  const m = approved() && S.module!=="home" ? moduleInfo() : null;
+  $("#brand").innerHTML = m ? `${h(m.title)}<small>${h(PORTAL_NAME)}</small>` : `${h(PORTAL_NAME)}<small>${h(PORTAL_TAGLINE)}</small>`;
+  document.title = m ? `${m.title} · ${PORTAL_NAME}` : PORTAL_NAME;
+  $("#crumb").innerHTML = m ? `<button class="crumb" data-go="home">← Início</button>` : "";
+  const who=$("#who");
+  if(S.session && S.profile && S.authMode!=="recovery"){
+    who.innerHTML=`${h(S.profile.full_name)}${isAdmin()?", administradora":role()==="financeiro"?", financeiro":""}<br><button class="btn link" data-action="logout">Sair</button>`;
+  } else who.innerHTML="";
+}
+function approved(){ return S.session && S.profile && S.profile.status==="aprovado" && S.authMode!=="recovery"; }
+const pendingFin = r => r.status==="aguardando_financeiro";
+function renderTabs(){
+  const nav=$("#tabs");
+  if(!approved() || S.module!=="reembolsos"){ nav.innerHTML=""; nav.hidden=true; return; }
+  nav.hidden=false;
+  const tabs=[["minhas","Minhas solicitações",0]];
+  if(isStaff()) tabs.push(["financeiro","Financeiro",S.requests.filter(r=>pendingFin(r)||r.status==="aprovado").length]);
+  if(isAdmin()) tabs.push(["config","Configurações",0]);
+  if(!tabs.some(t=>t[0]===S.tab)) S.tab="minhas";
+  nav.innerHTML = tabs.map(([k,l,c])=>`<button data-tab="${k}" ${S.tab===k?'aria-current="page"':""}>${h(l)}${c?`<span class="count">${c}</span>`:""}</button>`).join("");
+}
+function renderBanner(){
+  let out="";
+  if(S.flash) out+=`<div class="notice ${S.flash.kind==="ok"?"ok":""}" role="status">${h(S.flash.text)} <button class="btn link" data-action="dismiss">Fechar</button></div>`;
+  if(approved() && S.loadErr) out+=`<div class="notice err">${h(S.loadErr)} <button class="btn link" data-action="refresh">Tentar de novo</button></div>`;
+  $("#banner").innerHTML=out;
+}
+
+function renderView(){
+  const v=$("#view");
+  if(!CONFIGURED){ v.innerHTML=`<div class="panel"><h2>Falta configurar</h2><p>Abra o arquivo <strong>index.html</strong> e preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no topo do código, como explica o README.</p></div>`; return; }
+  if(!S.session || S.authMode==="recovery") return renderAuth();
+  if(!S.profile){ v.innerHTML = S.profileErr ? `<div class="notice err">${h(S.profileErr)} <button class="btn link" data-action="logout">Sair</button></div>` : `<div class="empty">Carregando…</div>`; return; }
+  if(S.profile.status==="pendente"){ v.innerHTML=`<div class="authwrap"><div class="panel"><h2>Cadastro recebido</h2><p>Olá, ${h(S.profile.full_name)}. Seu acesso aguarda a aprovação da administradora. Assim que for aprovado, entre de novo por este mesmo endereço.</p><div class="formfoot"><button class="btn" data-action="recheck">Verificar de novo</button><button class="btn" data-action="logout">Sair</button></div></div></div>`; return; }
+  if(S.profile.status==="bloqueado"){ v.innerHTML=`<div class="authwrap"><div class="panel"><h2>Acesso bloqueado</h2><p>Seu acesso foi bloqueado. Fale com a administradora do sistema.</p><div class="formfoot"><button class="btn" data-action="logout">Sair</button></div></div></div>`; return; }
+  if(S.module==="home") return renderHome(v);
+  if(S.module==="usuarios") return isAdmin() ? renderUsers(v) : go("home");
+  if(!S.reqLoaded){ v.innerHTML=`<div class="empty">Carregando solicitações…</div>`; return; }
+  if(S.tab==="minhas") return renderMine(v);
+  if(S.tab==="financeiro") return renderFinance(v);
+  if(S.tab==="config") return renderConfig(v);
+}
+
+function renderAuth(){
+  const v=$("#view"), a=S.auth, m=S.authMode, busy=S.authBusy?"disabled":"";
+  const titles={login:"Entrar", signup:"Criar conta", forgot:"Recuperar senha", recovery:"Criar nova senha"};
+  const btn={login:"Entrar", signup:"Criar conta", forgot:"Enviar link", recovery:"Salvar nova senha"};
+  preserveFocus(()=>{
+  v.innerHTML=`<div class="authwrap"><form class="panel" id="auth-form" novalidate>
+    <h2>${titles[m]}</h2>
+    ${m==="signup"?`<p class="muted small">Depois de criar a conta, confirme o e-mail e aguarde a aprovação da administradora.</p>`:""}
+    ${m==="forgot"?`<p class="muted small">Enviaremos um link para você criar uma nova senha.</p>`:""}
+    ${S.authMsg?`<div class="notice ok">${h(S.authMsg)}</div>`:""}
+    <div class="fields one">
+      ${m==="signup"?`<div class="field"><label for="a-name">Nome completo</label><input type="text" id="a-name" data-a="name" autocomplete="name" value="${h(a.name||"")}" ${busy}></div>`:""}
+      ${m!=="recovery"?`<div class="field"><label for="a-email">E-mail</label><input type="email" id="a-email" data-a="email" autocomplete="email" value="${h(a.email||"")}" ${busy}></div>`:""}
+      ${m!=="forgot"?`<div class="field"><label for="a-pass">${m==="recovery"?"Nova senha":"Senha"}</label><input type="password" id="a-pass" data-a="password" autocomplete="${m==="login"?"current-password":"new-password"}" ${busy}>${m!=="login"?`<span class="hint">Pelo menos 8 caracteres</span>`:""}</div>`:""}
+      ${m==="signup"||m==="recovery"?`<div class="field"><label for="a-pass2">Repita a senha</label><input type="password" id="a-pass2" data-a="password2" autocomplete="new-password" ${busy}></div>`:""}
+    </div>
+    ${S.authErr?`<div class="notice err" style="margin:16px 0 0">${h(S.authErr)}</div>`:""}
+    <div class="formfoot" style="justify-content:space-between">
+      <div class="authlinks">${m==="login"?`<button type="button" class="btn link" data-auth="signup">Criar conta</button><button type="button" class="btn link" data-auth="forgot">Esqueci minha senha</button>`
+        : m!=="recovery"?`<button type="button" class="btn link" data-auth="login">Já tenho conta</button>`:""}</div>
+      <button type="submit" class="btn primary" ${busy}>${S.authBusy?"Aguarde…":btn[m]}</button>
+    </div>
+  </form></div>`;
+  });
+}
+
+function rowHTML(r){
+  const open=S.openId===r.id, its=r.items||[];
+  const cats=[...new Set(its.map(i=>i.category))];
+  return `<div><button class="row" data-open="${h(r.id)}" aria-expanded="${open}">
+    <div class="stub"><span class="code">${h(r.code)}</span><span class="date">${h(fmtDateShort(r.created_at))}</span></div>
+    <div class="rbody"><div class="desc">${h(r.title)}</div>
+      <div class="meta"><span>${its.length===1?"1 despesa":`${its.length} despesas`}</span><span>${h(cats.length>2?`${cats.slice(0,2).join(", ")} e outras`:cats.join(", "))}</span>${S.tab!=="minhas"?`<span>${h(reqName(r))}</span>`:""}${its.some(i=>i.over_limit)?`<span class="flag">Acima do teto</span>`:""}${r.status==="devolvido"&&isMine(r)?`<span class="flag">Ajuste pedido</span>`:""}</div></div>
+    <div class="rend"><span class="amt">${h(brl(r.total))}</span><span class="badge s-${h(r.status)}">${h(STATUS[r.status]||r.status)}</span></div>
+  </button>${open?detailHTML(r):""}</div>`;
+}
+function detailHTML(r){
+  const its=r.items||[], ret=lastReturn(r);
+  const hist=(r.history||[]).map(e=>`<li><span class="when">${h(fmtWhen(e.at))}</span>, ${h(e.by_name||"Alguém")}: ${h(ACTION_LABEL[e.action]||e.action)}${e.comment?`<span class="cmt">“${h(e.comment)}”</span>`:""}</li>`).join("");
+  const rows=its.map((it,i)=>{ const lim=limitOf(it.category);
+    return `<tr><td class="n">${i+1}</td><td>${h(fmtDate(it.date))}</td><td>${h(it.category)}</td><td>${h(it.description)}${it.km?`<br><span class="muted">${h(kmText(it))}</span>`:""}${it.over_limit&&lim?` <span class="flag">teto ${h(brl(lim))}</span>`:""}</td>
+    <td>${it.receipt_path?`<button class="btn link" data-receipt="${h(it.receipt_path)}">Abrir</button>`:`<span class="muted">Sem comprovante</span>`}</td><td class="num">${h(brl(it.amount))}</td></tr>`; }).join("");
+  return `<section class="detail" aria-label="Detalhes de ${h(r.code)}">
+    <div class="stamp s-${h(r.status)}" aria-hidden="true">${h(STATUS[r.status]||r.status)}</div>
+    <dl class="grid">
+      <div class="full"><dt>Título</dt><dd>${h(r.title)}</dd></div>
+      <div><dt>Código</dt><dd>${h(r.code)}</dd></div>
+      <div><dt>Solicitante</dt><dd>${h(reqName(r))}</dd></div>
+      <div><dt>Período</dt><dd>${h(dateRange(r))}</dd></div>
+      <div><dt>Motivo / centro de custo</dt><dd>${h(r.cost_center)}</dd></div>
+      <div><dt>Parceiro, fornecedor, prospect ou evento</dt><dd>${h(r.partner)}</dd></div>
+      <div><dt>Em nome de outro colaborador</dt><dd>${r.on_behalf?`Sim, ${h(r.on_behalf_of)}`:"Não"}</dd></div>
+      <div><dt>Pix ou conta bancária</dt><dd>${h(r.pix)}</dd></div>
+      ${r.paid_date?`<div><dt>Pago em</dt><dd>${h(fmtDate(r.paid_date))}</dd></div>`:""}
+    </dl>
+    <div class="tablewrap"><table class="items">
+      <thead><tr><th class="n">#</th><th>Data</th><th>Categoria</th><th>Descrição</th><th>Comprovante</th><th class="num">Valor</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="5">Total</td><td class="num">${h(brl(r.total))}</td></tr></tfoot>
+    </table></div>
+    ${r.status==="devolvido"&&ret?`<div class="notice" style="margin-top:16px"><strong>Ajuste pedido por ${h(ret.by_name||"financeiro")}:</strong> ${h(ret.comment)}</div>`:""}
+    <h3>Histórico</h3>
+    <ol class="timeline">${hist}</ol>
+    ${actionsHTML(r)}
+  </section>`;
+}
+function actionsHTML(r){
+  const id=r.id, dis=S.busy[id]?"disabled":"";
+  let inner="";
+  if(pendingFin(r) && isStaff()){
+    inner=`<label for="cmt-${h(id)}">Comentário do financeiro</label><textarea id="cmt-${h(id)}" data-cmt="${h(id)}" placeholder="Para devolver, explique o que o solicitante precisa ajustar. Obrigatório para devolver ou recusar.">${h(S.comment[id]||"")}</textarea>
+      <div class="btns"><button class="btn ok" data-act="aprovado" data-id="${h(id)}" ${dis}>Aprovar</button>
+      <button class="btn" data-act="devolvido" data-id="${h(id)}" ${dis}>Devolver para ajuste</button>
+      <button class="btn bad" data-act="recusado" data-id="${h(id)}" ${dis}>Recusar</button></div>`;
+  } else if(r.status==="aprovado" && isStaff()){
+    inner=`<label for="pay-${h(id)}">Data do pagamento</label>
+      <input type="date" id="pay-${h(id)}" data-pay="${h(id)}" value="${h(S.payDate[id]||todayISO())}" style="max-width:220px">
+      <div class="btns"><button class="btn ok" data-act="pago" data-id="${h(id)}" ${dis}>Registrar pagamento</button></div>`;
+  } else if(r.status==="devolvido" && isMine(r)){
+    inner=`<div class="btns" style="margin-top:0"><button class="btn primary" data-edit="${h(id)}">Corrigir e reenviar</button></div>`;
+  }
+  return inner ? `<div class="actions">${inner}${stepsHTML(S.steps[id]||[])}</div>` : "";
+}
+const listOrEmpty = (items, txt) => items.length ? `<div class="list">${items.map(rowHTML).join("")}</div>` : `<div class="empty">${txt}</div>`;
+const sum = a => a.reduce((s,r)=>s+(Number(r.total)||0),0);
+
+function renderMine(v){
+  const mine=S.requests.filter(isMine);
+  if(!v.querySelector("#formslot")) v.innerHTML=`<div id="formslot"></div><div id="listslot"></div>`;
+  const pend=mine.filter(r=>!["pago","recusado"].includes(r.status));
+  $("#listslot").innerHTML = `
+    <div class="bar"><h2>Minhas solicitações</h2>${!S.showForm?`<button class="btn primary" data-action="new">Nova solicitação</button>`:""}</div>
+    ${mine.length?`<div class="totals"><div>Em andamento<strong>${h(brl(sum(pend)))}</strong></div><div>Solicitações<strong>${mine.length}</strong></div></div>`:""}
+    ${listOrEmpty(mine,"Você ainda não pediu nenhum reembolso. Clique em “Nova solicitação” e anexe os comprovantes.")}`;
+  if(S.showForm && !$("#formslot form")) renderForm();
+  if(!S.showForm) $("#formslot").innerHTML="";
+}
+function renderForm(){
+  const slot=$("#formslot"); if(!slot) return;
+  const f=S.form, e=S.formErr, busy=S.formBusy?"disabled":"";
+  const editing=S.editId?S.requests.find(r=>r.id===S.editId):null;
+  const ref = editing ? isoLocal(new Date(editing.created_at)) : todayISO();
+  const minDate=oldestOpenDate(ref), items=f.items||[], ret=editing&&lastReturn(editing);
+  const er=k=>e[k]?`<span class="err" id="err-${k}">${h(e[k])}</span>`:"";
+  const itemHTML=(it,i)=>{ const k=x=>`i${i}_${x}`, lim=limitOf(it.category), v=parseMoney(it.amount);
+    return `<fieldset class="item"><legend>Despesa ${i+1}</legend>
+      ${items.length>1?`<button type="button" class="btn link rm" data-rm="${i}" ${busy}>Remover</button>`:""}
+      <div class="fields">
+        <div class="field"><label for="${k("date")}">Data</label><input type="date" id="${k("date")}" data-it="${i}" data-k="date" min="${minDate}" max="${todayISO()}" value="${h(it.date||"")}" ${busy}>${er(k("date"))}</div>
+        <div class="field"><label for="${k("category")}">Categoria</label><select id="${k("category")}" data-it="${i}" data-k="category" ${busy}><option value="">Escolha…</option>${CATEGORIES.map(c=>`<option ${it.category===c?"selected":""}>${h(c)}</option>`).join("")}</select>
+          ${lim?`<span class="hint">Teto: ${h(brl(lim))}</span>`:""}${er(k("category"))}</div>
+        ${it.category==="Km"
+          ? `<div class="field"><label for="${k("km")}">Quilômetros rodados</label><input type="text" inputmode="decimal" id="${k("km")}" data-it="${i}" data-k="km" placeholder="0" value="${h(it.km||"")}" ${busy}>
+             <span class="hint" id="${k("kmval")}">${h(kmHint(it))}</span>${er(k("km"))}</div>`
+          : `<div class="field"><label for="${k("amount")}">Valor (R$)</label><input type="text" inputmode="decimal" id="${k("amount")}" data-it="${i}" data-k="amount" placeholder="0,00" value="${h(it.amount||"")}" ${busy}>
+             ${lim && v>lim?`<span class="hint" style="color:var(--warn)">Acima do teto. O financeiro verá esse aviso.</span>`:""}${er(k("amount"))}</div>`}
+        <div class="field"><label for="${k("file")}">Comprovante</label><input type="file" id="${k("file")}" data-itfile="${i}" accept="image/*,application/pdf" ${busy}>
+          <span class="hint">${it.file?h(it.file.name):it.receipt_path?`Mantém o atual: ${h(it.receipt_name||"comprovante")}`:it.category==="Km"?"Opcional para km, ex.: print do trajeto":"Foto ou PDF, até 20 MB"}</span>${er(k("receipt"))}</div>
+        <div class="field wide"><label for="${k("description")}">Descrição</label><input type="text" id="${k("description")}" data-it="${i}" data-k="description" placeholder="${it.category==="Outros"?"Descreva qual é a despesa":it.category==="Km"?"Trajeto, ex.: escritório até cliente X, ida e volta":"Ex.: almoço com cliente"}" value="${h(it.description||"")}" ${busy}>${er(k("description"))}</div>
+      </div></fieldset>`; };
+  preserveFocus(()=>{
+  slot.innerHTML=`<form class="sheet" id="req-form" novalidate>
+    <div class="bar"><h2>${editing?`Corrigir ${h(editing.code)}`:"Nova solicitação"}</h2></div>
+    ${ret?`<div class="notice"><strong>Ajuste pedido por ${h(ret.by_name||"financeiro")}:</strong> ${h(ret.comment)}</div>`:""}
+    <p class="deadline">${h(deadlineHint(ref))}</p>
+    <div class="fields">
+      <div class="field wide"><label for="f-title">Título da solicitação</label><input type="text" id="f-title" data-f="title" placeholder="Ex.: Visita a clientes em Campinas" value="${h(f.title||"")}" ${busy}>${er("title")}</div>
+      <div class="field"><label for="f-cc">Motivo / centro de custo</label><select id="f-cc" data-f="cost_center" ${busy}><option value="">Selecione uma opção</option>${COST_CENTERS.map(c=>`<option ${f.cost_center===c?"selected":""}>${h(c)}</option>`).join("")}</select>${er("cost_center")}</div>
+      <div class="field"><label for="f-partner">Nome do parceiro e loja, fornecedor, prospect ou evento</label><input type="text" id="f-partner" data-f="partner" value="${h(f.partner||"")}" ${busy}>${er("partner")}</div>
+      <div class="field"><span class="lbl" id="ob-l">É reembolso em nome de outro colaborador?</span>
+        <div class="radios" role="radiogroup" aria-labelledby="ob-l">
+          <label><input type="radio" name="ob" id="f-ob-n" data-f="on_behalf" value="nao" ${f.on_behalf!=="sim"?"checked":""} ${busy}> Não</label>
+          <label><input type="radio" name="ob" id="f-ob-s" data-f="on_behalf" value="sim" ${f.on_behalf==="sim"?"checked":""} ${busy}> Sim</label>
+        </div></div>
+      ${f.on_behalf==="sim"?`<div class="field"><label for="f-for">Para quem?</label><input type="text" id="f-for" data-f="on_behalf_of" placeholder="Nome do colaborador" value="${h(f.on_behalf_of||"")}" ${busy}>${er("on_behalf_of")}</div>`:""}
+      <div class="field wide"><label for="f-pix">Pix ou conta bancária</label><input type="text" id="f-pix" data-f="pix" placeholder="Chave Pix, ou banco, agência e conta" value="${h(f.pix||"")}" ${busy}>${er("pix")}</div>
+      ${editing?`<div class="field wide"><label for="f-note">O que você ajustou?</label><input type="text" id="f-note" data-f="note" value="${h(f.note||"")}" ${busy}></div>`:""}
+    </div>
+    <h3>Despesas</h3>
+    ${items.map(itemHTML).join("")}
+    ${er("items")}
+    <button type="button" class="btn" data-action="add-item" ${busy}>Adicionar despesa</button>
+    <div class="totalbar"><span>Total da solicitação, ${items.length===1?"1 despesa":`${items.length} despesas`}</span><strong id="f-total">${h(brl(formTotal()))}</strong></div>
+    ${e.submit?`<div class="notice err" style="margin:16px 0 0">${h(e.submit)}</div>`:""}
+    ${stepsHTML(S.formSteps)}
+    <div class="formfoot"><button type="button" class="btn" data-action="cancel" ${busy}>Cancelar</button>
+      <button type="submit" class="btn primary" ${busy}>${S.formBusy?"Enviando…":editing?"Reenviar para o financeiro":"Enviar para o financeiro"}</button></div>
+  </form>`;
+  });
+}
+function renderFinance(v){
+  const byDate=a=>[...a].sort((x,y)=>(y.updated_at||"").localeCompare(x.updated_at||""));
+  const conf=byDate(S.requests.filter(pendingFin)), pay=byDate(S.requests.filter(r=>r.status==="aprovado"));
+  const back=byDate(S.requests.filter(r=>r.status==="devolvido")), paid=byDate(S.requests.filter(r=>r.status==="pago")).slice(0,30);
+  v.innerHTML=`<div class="bar"><h2>Financeiro</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-action="refresh">Atualizar</button><button class="btn" data-action="download-sheet">Baixar planilha</button></div></div>
+    <div class="totals"><div>Para analisar<strong>${h(brl(sum(conf)))}</strong></div><div>A pagar<strong>${h(brl(sum(pay)))}</strong></div></div>
+    <h3 style="margin-top:0">Para analisar</h3>${listOrEmpty(conf,"Nenhuma solicitação aguardando análise.")}
+    <h3>Aprovadas, a pagar</h3>${listOrEmpty(pay,"Nenhum pagamento pendente.")}
+    ${back.length?`<h3>Devolvidas, aguardando o solicitante</h3>${listOrEmpty(back,"")}`:""}
+    ${paid.length?`<h3>Pagas recentemente</h3>${listOrEmpty(paid,"")}`:""}`;
+}
+function processStatus(p){
+  if(p.id!=="reembolsos" || !S.reqLoaded) return "";
+  const mine=S.requests.filter(isMine);
+  const back=mine.filter(r=>r.status==="devolvido").length;
+  const open=mine.filter(r=>!["pago","recusado","devolvido"].includes(r.status)).length;
+  const parts=[];
+  if(isStaff()){ const n=S.requests.filter(pendingFin).length; if(n) parts.push(`<span class="pill hot">${n} para analisar</span>`); }
+  if(back) parts.push(`<span class="pill warn">${back} ${back===1?"devolvida":"devolvidas"} para ajuste</span>`);
+  if(open) parts.push(`<span class="pill">${open} em andamento</span>`);
+  return parts.join("");
+}
+function renderHome(v){
+  const first=(S.profile.full_name||"").split(" ")[0];
+  const pend=S.users.filter(u=>u.status==="pendente").length;
+  v.innerHTML=`<section class="hello"><h2>Olá, ${h(first)}</h2><p class="muted">Escolha o processo que você quer abrir.</p></section>
+    <div class="home-grid">
+      ${PROCESSES.map(p=>`<button class="proc" data-go="${h(p.id)}">
+        <span class="ico">${p.icon}</span>
+        <span class="ptitle">${h(p.title)}</span>
+        <span class="pdesc">${h(p.desc)}</span>
+        <span class="pstatus">${processStatus(p)}</span>
+        <span class="pgo">Abrir <span aria-hidden="true">→</span></span>
+      </button>`).join("")}
+    </div>
+    ${isAdmin()?`<h3 class="admin-h">Administração</h3>
+      <div class="home-grid">
+        <button class="proc small" data-go="usuarios">
+          <span class="ptitle">Usuários</span>
+          <span class="pdesc">Aprove novos cadastros, bloqueie acessos e defina quem é do financeiro.</span>
+          <span class="pstatus">${pend?`<span class="pill hot">${pend} ${pend===1?"cadastro aguardando":"cadastros aguardando"}</span>`:""}</span>
+          <span class="pgo">Abrir <span aria-hidden="true">→</span></span>
+        </button>
+      </div>`:""}`;
+}
+function renderUsers(v){
+  const order={pendente:0, aprovado:1, bloqueado:2};
+  const us=[...S.users].sort((a,b)=>(order[a.status]-order[b.status]) || a.full_name.localeCompare(b.full_name));
+  const row=u=>{ const me=u.id===myId(), b=S.busy["u"+u.id]?"disabled":"";
+    return `<div class="userrow">
+      <div><div class="desc">${h(u.full_name)}${me?" (você)":""}</div><div class="meta"><span>${h(u.email)}</span><span>Cadastro em ${h(fmtDate(u.created_at.slice(0,10)))}</span></div></div>
+      <div><span class="badge u-${h(u.status)}">${h(USER_STATUS[u.status])}</span></div>
+      <div class="uact">
+        ${me?`<span class="muted small">${h(ROLE_LABEL[u.role])}</span>`:`<label class="sr" for="role-${h(u.id)}">Perfil de ${h(u.full_name)}</label><select id="role-${h(u.id)}" data-role="${h(u.id)}" ${b}>${Object.entries(ROLE_LABEL).map(([k,l])=>`<option value="${k}" ${u.role===k?"selected":""}>${l}</option>`).join("")}</select>`}
+        ${me?"":u.status==="aprovado"?`<button class="btn bad" data-ustatus="bloqueado" data-uid="${h(u.id)}" ${b}>Bloquear</button>`:`<button class="btn ok" data-ustatus="aprovado" data-uid="${h(u.id)}" ${b}>${u.status==="pendente"?"Aprovar":"Reativar"}</button>`}
+      </div></div>`; };
+  const pend=us.filter(u=>u.status==="pendente");
+  v.innerHTML=`<div class="bar"><h2>Usuários</h2><button class="btn" data-action="refresh">Atualizar</button></div>
+    <p class="muted small" style="margin-top:0">Quem cria uma conta aparece aqui como “Aguardando aprovação” e só consegue entrar depois que você aprovar.</p>
+    ${pend.length?`<h3 style="margin-top:0">Aguardando aprovação</h3><div class="panel tight">${pend.map(row).join("")}</div>`:""}
+    <h3>${pend.length?"Demais usuários":"Todos os usuários"}</h3><div class="panel tight">${us.filter(u=>u.status!=="pendente").map(row).join("")||`<p class="muted">Ninguém ainda.</p>`}</div>`;
+}
+function renderConfig(v){
+  if(!S.draft) S.draft={km_rate:String(kmRate()).replace(".",","), limits:{...(S.settings.limits||{})}};
+  const d=S.draft;
+  v.innerHTML=`<div class="bar"><h2>Configurações</h2></div>
+  <div class="panel">
+    <h3 style="margin-top:0">Política</h3>
+    <p class="small" style="margin-top:0">As despesas de cada mês podem ser enviadas até o dia 5 do mês seguinte. ${h(deadlineHint(todayISO()))}</p>
+    <div class="field" style="max-width:260px;margin-bottom:16px"><label for="kmrate">Valor por km rodado (R$)</label><input type="text" inputmode="decimal" id="kmrate" data-kmrate value="${h(d.km_rate)}"><span class="hint">Usado na categoria Km</span></div>
+    <p class="small" style="margin:0 0 8px;font-weight:500">Teto por categoria (R$, deixe vazio para sem teto)</p>
+    <div class="limits">${CATEGORIES.map((cat,i)=>`<div class="field"><label for="lim-${i}">${h(cat)}</label><input type="text" inputmode="decimal" id="lim-${i}" data-lim="${h(cat)}" value="${h(d.limits[cat]?String(d.limits[cat]).replace(".",","):"")}"></div>`).join("")}</div>
+  </div>
+  <div class="formfoot"><button class="btn primary" data-action="save-config" ${S.busy.config?"disabled":""}>${S.busy.config?"Salvando…":"Salvar política"}</button></div>
+  ${stepsHTML(S.steps.config||[])}`;
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener("click", async ev=>{
+  const t=ev.target.closest("button,a"); if(!t) return;
+  if(t.dataset.auth){ S.authMode=t.dataset.auth; S.authErr=null; S.authMsg=null; renderAuth(); const f=document.querySelector("#auth-form input"); if(f) f.focus(); return; }
+  if(t.dataset.go){ go(t.dataset.go); return; }
+  if(t.dataset.tab){ S.tab=t.dataset.tab; S.openId=null; S.draft=null; render(); return; }
+  if(t.dataset.open){ S.openId = S.openId===t.dataset.open ? null : t.dataset.open; render(); return; }
+  if(t.dataset.receipt){ openReceipt(t.dataset.receipt); return; }
+  if(t.dataset.act){ act(t.dataset.id, t.dataset.act); return; }
+  if(t.dataset.ustatus){
+    const id=t.dataset.uid; S.busy["u"+id]=true; render();
+    const { error } = await sb.from("profiles").update({status:t.dataset.ustatus}).eq("id",id);
+    S.flash = error ? {kind:"warn", text:dbMessage(error)} : {kind:"ok", text: t.dataset.ustatus==="aprovado" ? "Acesso liberado. A pessoa já pode entrar." : "Acesso bloqueado."};
+    await loadUsers(); S.busy["u"+id]=false; render(); return;
+  }
+  if(t.dataset.edit){
+    const r=S.requests.find(x=>x.id===t.dataset.edit); if(!r) return;
+    S.editId=r.id; S.showForm=true; S.formErr={};
+    S.form={title:r.title, cost_center:r.cost_center, partner:r.partner, on_behalf:r.on_behalf?"sim":"nao", on_behalf_of:r.on_behalf_of||"", pix:r.pix,
+      items:(r.items||[]).map(it=>({date:it.date, category:it.category, amount:String(it.amount).replace(".",","), km:it.km?String(it.km).replace(".",","):"", description:it.description,
+        receipt_path:it.receipt_path, receipt_name:it.receipt_name, receipt_type:it.receipt_type, file:null}))};
+    S.tab="minhas"; S.module="reembolsos"; $("#view").innerHTML=""; render(); window.scrollTo({top:0}); return;
+  }
+  if(t.dataset.rm!=null){ S.form.items.splice(Number(t.dataset.rm),1); S.formErr={}; renderForm(); return; }
+  const a=t.dataset.action; if(!a) return;
+  if(a==="dismiss"){ S.flash=null; render(); }
+  else if(a==="logout"){ await sb.auth.signOut(); }
+  else if(a==="recheck"){ await loadAll(); }
+  else if(a==="refresh"){ await refresh(); }
+  else if(a==="new"){ S.showForm=true; S.editId=null; S.form={items:[{date:todayISO()}]}; S.formErr={}; render(); const d=$("#f-title"); if(d) d.focus(); }
+  else if(a==="cancel"){ S.showForm=false; S.editId=null; S.form={}; S.formErr={}; render(); }
+  else if(a==="add-item"){ const last=(S.form.items||[]).slice(-1)[0]; S.form.items=[...(S.form.items||[]), {date:(last&&last.date)||todayISO()}]; delete S.formErr.items; renderForm();
+    const n=S.form.items.length-1, el=document.getElementById(`i${n}_category`); if(el){ el.focus(); el.scrollIntoView({block:"center"}); } }
+  else if(a==="download-sheet"){ try{ downloadSheet(); }catch(e){ S.flash={kind:"warn", text:"Não foi possível gerar a planilha."}; render(); } }
+  else if(a==="save-config"){
+    const d=S.draft, limits={};
+    for(const [k,val] of Object.entries(d.limits)){ const n=parseMoney(val); if(n>0) limits[k]=n; }
+    const kr=parseMoney(d.km_rate);
+    S.busy.config=true; S.steps.config=[]; render();
+    const { error } = await sb.from("settings").update({ km_rate: kr>0?kr:KM_RATE_DEFAULT, limits }).eq("id",1);
+    if(error) S.steps.config=[dbMessage(error)]; else { await loadSettings(); S.draft=null; S.flash={kind:"ok", text:"Política salva."}; }
+    S.busy.config=false; render();
+  }
+});
+document.addEventListener("input", ev=>{
+  const t=ev.target;
+  if(t.dataset.a){ S.auth[t.dataset.a]=t.value; return; }
+  if(t.dataset.f){ S.form[t.dataset.f]=t.value; if(S.formErr[t.dataset.f]){ delete S.formErr[t.dataset.f]; const e=document.getElementById("err-"+t.dataset.f); if(e) e.remove(); }
+    if(t.dataset.f==="on_behalf"){ renderForm(); if(t.value==="sim"){ const x=$("#f-for"); if(x) x.focus(); } } return; }
+  if(t.dataset.it!=null){ const i=Number(t.dataset.it), k=t.dataset.k; S.form.items[i][k]=t.value;
+    const ek=`i${i}_${k}`; if(S.formErr[ek]){ delete S.formErr[ek]; const e=document.getElementById("err-"+ek); if(e) e.remove(); }
+    if(k==="amount"||k==="km"){ const tot=document.getElementById("f-total"); if(tot) tot.textContent=brl(formTotal()); }
+    if(k==="km"){ const kv=document.getElementById(`i${i}_kmval`); if(kv) kv.textContent=kmHint(S.form.items[i]); }
+    return; }
+  if(t.dataset.cmt){ S.comment[t.dataset.cmt]=t.value; return; }
+  if(t.dataset.pay){ S.payDate[t.dataset.pay]=t.value; return; }
+  if(t.dataset.lim!=null){ S.draft.limits[t.dataset.lim]=t.value; return; }
+  if(t.dataset.kmrate!=null){ S.draft.km_rate=t.value; return; }
+});
+document.addEventListener("change", async ev=>{
+  const t=ev.target;
+  if(t.dataset.itfile!=null){ const i=Number(t.dataset.itfile); S.form.items[i].file=t.files&&t.files[0]||null; delete S.formErr[`i${i}_receipt`]; renderForm(); }
+  if(t.dataset.it!=null && (t.dataset.k==="category"||t.dataset.k==="amount")) renderForm();
+  if(t.dataset.role){
+    const id=t.dataset.role; S.busy["u"+id]=true; render();
+    const { error } = await sb.from("profiles").update({role:t.value}).eq("id",id);
+    S.flash = error ? {kind:"warn", text:dbMessage(error)} : {kind:"ok", text:"Perfil atualizado."};
+    await loadUsers(); S.busy["u"+id]=false; render();
+  }
+});
+document.addEventListener("submit", ev=>{
+  ev.preventDefault();
+  if(ev.target.id==="auth-form"){ if(!S.authBusy) authSubmit(); }
+  else if(ev.target.id==="req-form"){ if(!S.formBusy) submitForm(); }
+});
+
+/* ---------- inicialização ---------- */
+(async function init(){
+  if(!CONFIGURED){ render(); return; }
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(event==="INITIAL_SESSION") return;
+    if(event==="PASSWORD_RECOVERY"){ S.session=session; S.authMode="recovery"; S.auth={}; render(); return; }
+    const had=!!S.session; S.session=session;
+    if(!session){ if(location.hash) history.replaceState(null,"",location.pathname+location.search); Object.assign(S,{profile:null, requests:[], users:[], reqLoaded:false, module:"home", tab:"minhas", showForm:false, editId:null, form:{}, authMode:"login"}); render(); }
+    else if(!had || event==="SIGNED_IN" && !S.profile){ setTimeout(loadAll,0); }
+  });
+  routeFromHash();
+  const { data } = await sb.auth.getSession();
+  S.session=data.session;
+  if(S.session && S.authMode!=="recovery") await loadAll(); else render();
+  document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") refresh(); });
+  setInterval(()=>{ if(document.visibilityState==="visible" && !S.formBusy && !S.showForm) refresh(); }, 60000);
+})();
+
+</script>
+</body>
+</html>
