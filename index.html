@@ -100,6 +100,10 @@ code{background:var(--disabled);padding:1px 5px;border-radius:3px;font-size:14px
 .s-pago{color:var(--ok);background:var(--ok-soft)}
 .s-devolvido{color:var(--warn)}
 .s-recusado{color:var(--bad)}
+.s-cancelado{color:var(--ink-3)}
+.cancelrow{margin-top:14px}
+.cancelbox{margin-top:16px;padding:14px 16px;border:1px solid #F3C9C9;background:#FFF8F8;border-radius:4px}
+.cancelbox .hint{margin:6px 0 0}
 .flag{font-size:12px;font-weight:600;color:var(--warn);background:var(--warn-soft);padding:1px 6px;border-radius:3px}
 
 /* Detalhe */
@@ -277,11 +281,12 @@ const STATUS = {
   aprovado:"Aprovado, a pagar",
   pago:"Pago",
   devolvido:"Devolvido para ajuste",
-  recusado:"Recusado"
+  recusado:"Recusado",
+  cancelado:"Cancelada"
 };
 const ACTION_LABEL = {
   enviado:"Enviou a solicitação", reenviado:"Reenviou com ajustes",
-  aprovado:"Aprovou", devolvido:"Devolveu para ajuste", recusado:"Recusou", pago:"Registrou o pagamento"
+  aprovado:"Aprovou", devolvido:"Devolveu para ajuste", recusado:"Recusou", pago:"Registrou o pagamento", cancelado:"Cancelou a solicitação"
 };
 const ROLE_LABEL = { colaborador:"Colaborador", financeiro:"Financeiro", admin:"Administrador" };
 const USER_STATUS = { pendente:"Aguardando aprovação", aprovado:"Aprovado", bloqueado:"Bloqueado" };
@@ -529,15 +534,23 @@ async function submitForm(){
 async function act(id, kind){
   const r=S.requests.find(x=>x.id===id); if(!r) return;
   const comment=(S.comment[id]||"").trim();
+  if(kind==="cancelado"){
+    const cc=(CANCEL.cmt[id]||"").trim();
+    if(!isMine(r) && cc.length<3){ S.steps[id]=["Explique o motivo do cancelamento. O solicitante verá essa explicação."]; render(); const t=document.getElementById("ccmt-"+id); if(t) t.focus(); return; }
+    return act2(id, kind, r, cc);
+  }
   if((kind==="devolvido"||kind==="recusado") && comment.length<3){
     S.steps[id]=["Escreva um comentário explicando o motivo."]; render(); const t=document.getElementById("cmt-"+id); if(t) t.focus(); return;
   }
+  return act2(id, kind, r, comment);
+}
+async function act2(id, kind, r, comment){
   const upd={ status:kind, history:[...(r.history||[]), {at:new Date().toISOString(), by_name:S.profile.full_name, action:kind, comment}] };
   if(kind==="pago") upd.paid_date=S.payDate[id]||todayISO();
   S.busy[id]=kind; S.steps[id]=["Salvando…"]; render();
   const { error } = await sb.from("requests").update(upd).eq("id", id);
   if(error){ S.steps[id]=[dbMessage(error)]; }
-  else { S.comment[id]=""; S.steps[id]=[]; S.flash={kind:"ok", text:`${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
+  else { if(kind==="cancelado"){ CANCEL.open[id]=false; CANCEL.cmt[id]=""; } else S.comment[id]=""; S.steps[id]=[]; S.flash={kind:"ok", text:`${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
   S.busy[id]=null; render();
 }
 
@@ -782,11 +795,24 @@ function detailHTML(r){
       <tbody>${rows}</tbody>
       <tfoot><tr><td colspan="5">Total</td><td class="num">${h(brl(r.total))}</td></tr></tfoot>
     </table></div>
+    ${r.status==="cancelado"&&(r.history||[]).some(e=>e.action==="cancelado")?(()=>{ const c=(r.history||[]).filter(e=>e.action==="cancelado").pop(); return `<div class="notice" style="margin-top:16px;border-left-color:var(--ink-3)"><strong>Cancelada por ${h(c.by_name||"alguém")}${c.comment?":":"."}</strong> ${h(c.comment||"")}</div>`; })():""}
     ${r.status==="devolvido"&&ret?`<div class="notice" style="margin-top:16px"><strong>Ajuste pedido por ${h(ret.by_name||"financeiro")}:</strong> ${h(ret.comment)}</div>`:""}
     <h3>Histórico</h3>
     <ol class="timeline">${hist}</ol>
     ${actionsHTML(r)}
   </section>`;
+}
+const CANCEL={open:{}, cmt:{}};
+function canCancel(r){ return r.status!=="cancelado" && (isAdmin() || (isMine(r) && ["aguardando_financeiro","devolvido"].includes(r.status))); }
+function cancelHTML(r){
+  if(!canCancel(r)) return "";
+  const id=r.id, dis=S.busy[id]?"disabled":"";
+  if(!CANCEL.open[id]) return `<div class="btns cancelrow"><button class="btn bad" data-cancelask="${h(id)}" ${dis}>Cancelar solicitação</button></div>`;
+  const other=!isMine(r);
+  return `<div class="cancelbox"><label for="ccmt-${h(id)}">Motivo do cancelamento${other?"":" (opcional)"}</label>
+    <textarea id="ccmt-${h(id)}" data-ccmt="${h(id)}" placeholder="${other?"Explique ao solicitante por que a solicitação foi cancelada":"Ex.: enviei em duplicidade"}">${h(CANCEL.cmt[id]||"")}</textarea>
+    <p class="hint">${r.status==="pago"?"Esta solicitação já foi paga. Cancelar só muda o status no sistema e não estorna o pagamento.":"Depois de cancelada, a solicitação não pode mais ser alterada nem reenviada."}</p>
+    <div class="btns"><button class="btn bad" data-act="cancelado" data-id="${h(id)}" ${dis}>${S.busy[id]==="cancelado"?"Cancelando…":"Confirmar cancelamento"}</button><button class="btn" data-cancelno="${h(id)}" ${dis}>Voltar</button></div></div>`;
 }
 function actionsHTML(r){
   const id=r.id, dis=S.busy[id]?"disabled":"";
@@ -803,7 +829,9 @@ function actionsHTML(r){
   } else if(r.status==="devolvido" && isMine(r)){
     inner=`<div class="btns" style="margin-top:0"><button class="btn primary" data-edit="${h(id)}">Corrigir e reenviar</button></div>`;
   }
-  return inner ? `<div class="actions">${inner}${stepsHTML(S.steps[id]||[])}</div>` : "";
+  const cx=cancelHTML(r);
+  if(!inner && !cx) return "";
+  return `<div class="actions">${inner}${cx}${stepsHTML(S.steps[id]||[])}</div>`;
 }
 const listOrEmpty = (items, txt) => items.length ? `<div class="list">${items.map(rowHTML).join("")}</div>` : `<div class="empty">${txt}</div>`;
 const sum = a => a.reduce((s,r)=>s+(Number(r.total)||0),0);
@@ -811,7 +839,7 @@ const sum = a => a.reduce((s,r)=>s+(Number(r.total)||0),0);
 function renderMine(v){
   const mine=S.requests.filter(isMine);
   if(!v.querySelector("#formslot")) v.innerHTML=`<div id="formslot"></div><div id="listslot"></div>`;
-  const pend=mine.filter(r=>!["pago","recusado"].includes(r.status));
+  const pend=mine.filter(r=>!["pago","recusado","cancelado"].includes(r.status));
   $("#listslot").innerHTML = `
     <div class="bar"><h2>Minhas solicitações</h2>${!S.showForm?`<button class="btn primary" data-action="new">Nova solicitação</button>`:""}</div>
     ${mine.length?`<div class="totals"><div>Em andamento<strong>${h(brl(sum(pend)))}</strong></div><div>Solicitações<strong>${mine.length}</strong></div></div>`:""}
@@ -889,7 +917,7 @@ function processStatus(p){
   if(p.id!=="reembolsos" || !S.reqLoaded) return "";
   const mine=S.requests.filter(isMine);
   const back=mine.filter(r=>r.status==="devolvido").length;
-  const open=mine.filter(r=>!["pago","recusado","devolvido"].includes(r.status)).length;
+  const open=mine.filter(r=>!["pago","recusado","devolvido","cancelado"].includes(r.status)).length;
   const parts=[];
   if(isStaff()){ const n=S.requests.filter(pendingFin).length; if(n) parts.push(`<span class="pill hot">${n} para analisar</span>`); }
   if(back) parts.push(`<span class="pill warn">${back} ${back===1?"devolvida":"devolvidas"} para ajuste</span>`);
@@ -1400,6 +1428,8 @@ document.addEventListener("click", async ev=>{
   if(t.dataset.open){ S.openId = S.openId===t.dataset.open ? null : t.dataset.open; render(); return; }
   if(t.dataset.receipt){ openReceipt(t.dataset.receipt); return; }
   if(t.dataset.act){ act(t.dataset.id, t.dataset.act); return; }
+  if(t.dataset.cancelask){ CANCEL.open[t.dataset.cancelask]=true; S.steps[t.dataset.cancelask]=[]; render(); const x=document.getElementById("ccmt-"+t.dataset.cancelask); if(x) x.focus(); return; }
+  if(t.dataset.cancelno){ CANCEL.open[t.dataset.cancelno]=false; S.steps[t.dataset.cancelno]=[]; render(); return; }
   if(t.dataset.ustatus){
     const id=t.dataset.uid; S.busy["u"+id]=true; render();
     const { error } = await sb.from("profiles").update({status:t.dataset.ustatus}).eq("id",id);
@@ -1449,6 +1479,7 @@ document.addEventListener("input", ev=>{
     if(k==="km"){ const kv=document.getElementById(`i${i}_kmval`); if(kv) kv.textContent=kmHint(S.form.items[i]); }
     return; }
   if(t.dataset.cmt){ S.comment[t.dataset.cmt]=t.value; return; }
+  if(t.dataset.ccmt){ CANCEL.cmt[t.dataset.ccmt]=t.value; return; }
   if(t.dataset.pay){ S.payDate[t.dataset.pay]=t.value; return; }
   if(t.dataset.lim!=null){ S.draft.limits[t.dataset.lim]=t.value; return; }
   if(t.dataset.kmrate!=null){ S.draft.km_rate=t.value; return; }
