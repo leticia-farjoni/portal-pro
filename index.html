@@ -243,6 +243,37 @@ ul.att{margin:10px 0 0;padding-left:20px;font-size:14px}
 .tiform{display:flex;flex-direction:column;gap:12px;max-width:560px}
 input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#fff;border-radius:4px;padding:8px 12px;font-size:16px;min-height:40px}
 .pill.ti{background:var(--ice-soft);color:var(--ice)}
+
+/* Notificações */
+.tright{display:flex;align-items:center;gap:16px}
+.bell{position:relative;width:40px;height:40px;border-radius:50%;border:0;background:none;color:#fff;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.bell:hover{background:rgba(255,255,255,.1)}
+.bell svg{width:22px;height:22px}
+.bell .bdg{position:absolute;top:2px;right:0;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--red);color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
+.notif{position:fixed;top:80px;right:16px;width:min(400px,calc(100vw - 32px));max-height:min(70vh,560px);display:flex;flex-direction:column;background:#fff;border:1px solid var(--card-line);border-radius:6px;box-shadow:0 12px 32px rgba(32,44,51,.18);z-index:40}
+.notif-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--rule)}
+.notif-head strong{font-size:16px;color:var(--navy)}
+.notif-list{overflow-y:auto}
+.nitem{display:grid;grid-template-columns:10px 1fr;gap:10px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid var(--rule);background:#fff;text-align:left;cursor:pointer;font-size:14px;color:var(--ink)}
+.nitem:hover{background:#F3F6F9}
+.nitem .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;background:transparent}
+.nitem.unread{background:#F5F9FD}
+.nitem.unread .dot{background:var(--red)}
+.nitem .nt{display:block}
+.nitem .nsub{display:block;color:var(--ink-2);font-size:13px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nitem .nbody{display:block;color:var(--ink);font-size:13px;margin-top:4px;font-style:italic;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.nitem .nwhen{display:block;color:var(--ink-3);font-size:12px;margin-top:4px}
+.notif-empty{padding:28px 16px;text-align:center;color:var(--ink-2);font-size:14px}
+/* Menções */
+.mention{color:var(--brand-2);font-weight:600;font-style:normal}
+.mention-pop{position:absolute;z-index:50;background:#fff;border:1px solid var(--field);border-radius:4px;box-shadow:0 8px 20px rgba(32,44,51,.15);max-height:240px;overflow-y:auto;min-width:220px}
+.mention-pop button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 12px;font-size:14px;cursor:pointer;color:var(--ink)}
+.mention-pop button.on,.mention-pop button:hover{background:var(--carbon-soft)}
+.mhint{font-size:12px;color:var(--ink-3);margin-top:4px}
+.commentbox{margin-top:16px;padding:14px 16px;border:1px solid var(--rule);background:#FAFBFC;border-radius:4px}
+.focusbox{margin:0 0 24px;padding-bottom:20px;border-bottom:1px solid var(--rule)}
+.focusbox h3{margin-top:0}
+@media (max-width:640px){.tright{gap:8px}.who{display:none}.notif{top:80px;right:8px;left:8px;width:auto}}
 </style>
 </head>
 <body>
@@ -250,8 +281,12 @@ input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#
   <button class="menu-btn" id="menu-btn" data-action="menu" aria-label="Abrir menu" aria-controls="side" aria-expanded="false" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   <img class="logo" id="logo" alt="Rede PRÓ">
   <div class="crumbs" id="crumbs"></div>
-  <div class="who" id="who"></div>
+  <div class="tright">
+    <button class="bell" id="bell" data-action="bell" aria-label="Notificações" aria-expanded="false" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9a6 6 0 1 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg><span class="bdg" id="bell-n" hidden></span></button>
+    <div class="who" id="who"></div>
+  </div>
 </header>
+<div class="notif" id="notif" role="dialog" aria-label="Notificações" hidden></div>
 <div class="layout noside" id="layout">
   <aside class="side" id="side" aria-label="Menu" hidden></aside>
   <button class="scrim" id="scrim" data-action="menu-close" aria-label="Fechar menu" tabindex="-1"></button>
@@ -286,7 +321,7 @@ const STATUS = {
 };
 const ACTION_LABEL = {
   enviado:"Enviou a solicitação", reenviado:"Reenviou com ajustes",
-  aprovado:"Aprovou", devolvido:"Devolveu para ajuste", recusado:"Recusou", pago:"Registrou o pagamento", cancelado:"Cancelou a solicitação"
+  aprovado:"Aprovou", devolvido:"Devolveu para ajuste", recusado:"Recusou", pago:"Registrou o pagamento", cancelado:"Cancelou a solicitação", comentario:"Comentou"
 };
 const ROLE_LABEL = { colaborador:"Colaborador", financeiro:"Financeiro", admin:"Administrador" };
 const USER_STATUS = { pendente:"Aguardando aprovação", aprovado:"Aprovado", bloqueado:"Bloqueado" };
@@ -458,14 +493,122 @@ async function loadUsers(){
   const { data } = await sb.from("profiles").select("*").order("created_at",{ascending:false});
   S.users=data||[];
 }
+/* ---------- menções e notificações ---------- */
+const N = { list:[], dir:[], open:false };
+async function loadDir(){ try{ const { data } = await sb.rpc("mention_directory"); N.dir=(data||[]).filter(u=>u.full_name); }catch(e){ N.dir=[]; } }
+async function loadNotifs(){
+  try{ const { data, error } = await sb.from("notifications").select("*").order("created_at",{ascending:false}).limit(50); if(!error) N.list=data||[]; }catch(e){}
+}
+const normTxt = s => String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function mentionsIn(text){
+  const t=String(text||""); if(!t.includes("@")) return [];
+  return [...new Set(N.dir.filter(u=>u.id!==myId() && t.includes("@"+u.full_name)).map(u=>u.id))];
+}
+function withMentions(entry){ const m=mentionsIn(entry.comment); return m.length ? {...entry, mentions:m} : entry; }
+function fmtCmt(text){
+  let out=h(text);
+  if(!out.includes("@")) return out;
+  [...N.dir].sort((a,b)=>b.full_name.length-a.full_name.length).forEach(u=>{
+    const k=h("@"+u.full_name); if(out.includes(k)) out=out.split(k).join(`\u0000${u.id}\u0000`);
+  });
+  N.dir.forEach(u=>{ out=out.split(`\u0000${u.id}\u0000`).join(`<span class="mention">${h("@"+u.full_name)}</span>`); });
+  return out;
+}
+const MP={el:null, field:null, start:0, items:[], idx:0};
+function mentionClose(){ if(MP.el){ MP.el.remove(); MP.el=null; } MP.field=null; MP.items=[]; }
+function mentionCheck(field){
+  if(!N.dir.length){ mentionClose(); return; }
+  const pos=field.selectionStart, before=field.value.slice(0,pos);
+  const m=before.match(/(^|[\s(])@([^@\n]{0,40})$/);
+  if(!m){ mentionClose(); return; }
+  const raw=m[2], q=normTxt(raw).trim();
+  if(/\s$/.test(raw) && N.dir.some(u=>normTxt(u.full_name)===q)){ mentionClose(); return; }
+  const items=N.dir.filter(u=>u.id!==myId() && normTxt(u.full_name).includes(q)).slice(0,7);
+  if(!items.length || q.split(/\s+/).length>4){ mentionClose(); return; }
+  const st=pos-raw.length-1; if(MP.field!==field || MP.start!==st) MP.idx=0;
+  MP.field=field; MP.start=st; MP.items=items; MP.idx=Math.min(MP.idx, items.length-1);
+  if(!MP.el){ MP.el=document.createElement("div"); MP.el.className="mention-pop"; MP.el.setAttribute("role","listbox"); MP.el.addEventListener("mousedown", e=>e.preventDefault()); document.body.appendChild(MP.el); }
+  const r=field.getBoundingClientRect();
+  MP.el.style.top=(window.scrollY+r.bottom+4)+"px"; MP.el.style.left=(window.scrollX+r.left)+"px"; MP.el.style.width=Math.min(340,r.width)+"px";
+  MP.el.innerHTML=items.map((u,i)=>`<button type="button" data-mpick="${i}" class="${i===MP.idx?"on":""}" role="option">${h(u.full_name)}</button>`).join("");
+}
+function mentionPick(i){
+  const u=MP.items[i], f=MP.field; if(!u||!f) return;
+  const pos=f.selectionStart, ins="@"+u.full_name+" ";
+  f.value=f.value.slice(0,MP.start)+ins+f.value.slice(pos);
+  const np=MP.start+ins.length; mentionClose(); f.focus(); f.setSelectionRange(np,np);
+  f.dispatchEvent(new Event("input",{bubbles:true}));
+}
+const MENTION_HINT = `<div class="mhint">Digite @ para mencionar alguém. A pessoa recebe uma notificação.</div>`;
+function relTime(iso){
+  const s=(Date.now()-new Date(iso).getTime())/1000;
+  if(s<60) return "agora"; if(s<3600) return `há ${Math.floor(s/60)} min`; if(s<86400) return `há ${Math.floor(s/3600)} h`;
+  if(s<7*86400){ const d=Math.floor(s/86400); return d===1?"ontem":`há ${d} dias`; }
+  return fmtDate(isoLocal(new Date(iso)));
+}
+function notifText(n){
+  const where = n.process==="ti" ? "no chamado" : "na solicitação";
+  if(n.kind==="mencao") return `<strong>${h(n.actor_name||"Alguém")}</strong> mencionou você ${where} <strong>${h(n.ref_code||"")}</strong>`;
+  const lbl = n.process==="ti" ? (TI_ACTION[n.action]||n.action) : (ACTION_LABEL[n.action]||n.action);
+  return `<strong>${h(n.actor_name||"Alguém")}</strong>: ${h(String(lbl||"").toLowerCase())} <strong>${h(n.ref_code||"")}</strong>`;
+}
+function renderNotif(){
+  const unread=N.list.filter(n=>!n.read_at).length, ok=approved();
+  const bell=$("#bell"), bn=$("#bell-n"), panel=$("#notif");
+  bell.hidden=!ok; if(!ok) N.open=false;
+  bn.hidden=!unread; bn.textContent=unread>99?"99+":String(unread);
+  bell.setAttribute("aria-expanded", N.open?"true":"false");
+  bell.setAttribute("aria-label", unread?`Notificações, ${unread} não lidas`:"Notificações");
+  panel.hidden=!N.open;
+  if(!N.open) return;
+  panel.innerHTML=`<div class="notif-head"><strong>Notificações</strong>${unread?`<button class="btn link" data-action="notif-all">Marcar todas como lidas</button>`:""}</div>
+    <div class="notif-list">${N.list.length ? N.list.map(n=>`<button class="nitem${n.read_at?"":" unread"}" data-notif="${h(n.id)}"><span class="dot" aria-hidden="true"></span><span>
+      <span class="nt">${notifText(n)}</span>${n.ref_title?`<span class="nsub">${h(n.ref_title)}</span>`:""}
+      ${n.body?`<span class="nbody">“${fmtCmt(n.body)}”</span>`:""}<span class="nwhen">${h(relTime(n.created_at))}</span></span></button>`).join("")
+      : `<div class="notif-empty">Nenhuma notificação por enquanto.</div>`}</div>`;
+}
+async function openNotif(id){
+  const n=N.list.find(x=>x.id===id); if(!n) return;
+  N.open=false;
+  if(!n.read_at){ n.read_at=new Date().toISOString(); sb.from("notifications").update({read_at:n.read_at}).eq("id",id).then(()=>{}); }
+  if(n.process==="ti"){ await loadChamados(); } else { await loadRequests(); }
+  go(n.process);
+  if(n.process==="ti"){
+    const c=T.list.find(x=>x.id===n.ref_id);
+    if(!c){ S.flash={kind:"warn", text:`Não foi possível abrir o chamado ${n.ref_code||""}. Talvez você não tenha mais acesso a ele.`}; render(); return; }
+    T.tab = tiMine(c) ? "meus" : isTI() ? (c.status==="congelado"?"congelados":"fila") : "meus";
+    T.openId=c.id; T.focusId=c.id;
+  } else {
+    const r=S.requests.find(x=>x.id===n.ref_id);
+    if(!r){ S.flash={kind:"warn", text:`Não foi possível abrir a solicitação ${n.ref_code||""}. Talvez você não tenha mais acesso a ela.`}; render(); return; }
+    S.tab = isMine(r) ? "minhas" : isStaff() ? "financeiro" : "minhas";
+    S.openId=r.id; S.focusId=r.id;
+  }
+  $("#view").innerHTML=""; render();
+  setTimeout(()=>{ const el=document.querySelector(`#focusslot [aria-expanded="true"], [data-open="${n.ref_id}"], [data-tiopen="${n.ref_id}"]`); if(el) el.scrollIntoView({block:"start", behavior:"smooth"}); }, 50);
+}
+function applyFocus(){
+  const v=$("#view"); let fs=$("#focusslot");
+  const isR=S.module==="reembolsos", isT=S.module==="ti";
+  const id = isR ? S.focusId : isT ? T.focusId : null;
+  const item = !id ? null : isR ? S.requests.find(x=>x.id===id) : T.list.find(x=>x.id===id);
+  if(!item){ if(fs) fs.remove(); return; }
+  const attr = isR ? "data-open" : "data-tiopen";
+  const shown=[...v.querySelectorAll(`[${attr}]`)].some(b=>b.getAttribute(attr)===id && !b.closest("#focusslot"));
+  if(shown){ if(fs) fs.remove(); return; }
+  if(!fs){ v.insertAdjacentHTML("afterbegin",`<div id="focusslot"></div>`); fs=$("#focusslot"); }
+  fs.className="focusbox";
+  fs.innerHTML=`<h3>${isR?"Solicitação aberta":"Chamado aberto"} pela notificação</h3><div class="list">${isR?rowHTML(item):tiRow(item)}</div>`;
+}
+
 async function loadAll(){
   await loadProfile();
   if(S.profile && S.profile.status==="aprovado"){
-    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados()]);
+    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs()]);
   }
   render();
 }
-async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers(), loadChamados()]); render(); } }
+async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers(), loadChamados(), loadNotifs()]); render(); } }
 
 /* ---------- ações ---------- */
 const stepsHTML = steps => steps.length ? `<div class="progress" role="status">${steps.map(h).join("<br>")}</div>` : "";
@@ -534,6 +677,11 @@ async function submitForm(){
 async function act(id, kind){
   const r=S.requests.find(x=>x.id===id); if(!r) return;
   const comment=(S.comment[id]||"").trim();
+  if(kind==="comentario"){
+    const cc=(RC.cmt[id]||"").trim();
+    if(cc.length<2){ S.steps[id]=["Escreva o comentário."]; render(); const t=document.getElementById("rc-"+id); if(t) t.focus(); return; }
+    return act2(id, kind, r, cc);
+  }
   if(kind==="cancelado"){
     const cc=(CANCEL.cmt[id]||"").trim();
     if(!isMine(r) && cc.length<3){ S.steps[id]=["Explique o motivo do cancelamento. O solicitante verá essa explicação."]; render(); const t=document.getElementById("ccmt-"+id); if(t) t.focus(); return; }
@@ -545,12 +693,13 @@ async function act(id, kind){
   return act2(id, kind, r, comment);
 }
 async function act2(id, kind, r, comment){
-  const upd={ status:kind, history:[...(r.history||[]), {at:new Date().toISOString(), by_name:S.profile.full_name, action:kind, comment}] };
+  const entry=withMentions({at:new Date().toISOString(), by_name:S.profile.full_name, action:kind, comment});
+  const upd= kind==="comentario" ? { history:[...(r.history||[]), entry] } : { status:kind, history:[...(r.history||[]), entry] };
   if(kind==="pago") upd.paid_date=S.payDate[id]||todayISO();
   S.busy[id]=kind; S.steps[id]=["Salvando…"]; render();
   const { error } = await sb.from("requests").update(upd).eq("id", id);
   if(error){ S.steps[id]=[dbMessage(error)]; }
-  else { if(kind==="cancelado"){ CANCEL.open[id]=false; CANCEL.cmt[id]=""; } else S.comment[id]=""; S.steps[id]=[]; S.flash={kind:"ok", text:`${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
+  else { if(kind==="cancelado"){ CANCEL.open[id]=false; CANCEL.cmt[id]=""; } else S.comment[id]=""; S.steps[id]=[]; if(kind==="comentario"){ RC.open[id]=false; RC.cmt[id]=""; } S.flash={kind:"ok", text: kind==="comentario" ? `${r.code}: comentário enviado.` : `${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
   S.busy[id]=null; render();
 }
 
@@ -634,11 +783,11 @@ function preserveFocus(fn){
   fn();
   if(id){ const n=document.getElementById(id); if(n && n!==document.activeElement){ n.focus(); try{ if(s!=null) n.setSelectionRange(s,e); }catch(_){} } }
 }
-function render(){ preserveFocus(()=>{ renderHeader(); renderTabs(); renderBanner(); renderView(); decorateTitle(); }); }
+function render(){ mentionClose(); preserveFocus(()=>{ renderHeader(); renderNotif(); renderTabs(); renderBanner(); renderView(); applyFocus(); decorateTitle(); }); }
 
 function go(mod){
   if(!ROUTES.includes(mod)) mod="home";
-  S.module=mod; S.openId=null; S.draft=null; S.flash=null;
+  S.module=mod; S.openId=null; S.draft=null; S.flash=null; S.focusId=null; T.focusId=null;
   if(mod!=="reembolsos"){ S.showForm=false; S.editId=null; S.form={}; S.formErr={}; }
   if(mod!=="ti"){ T.showForm=false; T.form={}; T.formErr={}; T.openId=null; }
   const want = mod==="home" ? "" : "#"+mod;
@@ -773,7 +922,7 @@ function rowHTML(r){
 }
 function detailHTML(r){
   const its=r.items||[], ret=lastReturn(r);
-  const hist=(r.history||[]).map(e=>`<li><span class="when">${h(fmtWhen(e.at))}</span>, ${h(e.by_name||"Alguém")}: ${h(ACTION_LABEL[e.action]||e.action)}${e.comment?`<span class="cmt">“${h(e.comment)}”</span>`:""}</li>`).join("");
+  const hist=(r.history||[]).map(e=>`<li><span class="when">${h(fmtWhen(e.at))}</span>, ${h(e.by_name||"Alguém")}: ${h(ACTION_LABEL[e.action]||e.action)}${e.comment?`<span class="cmt">“${fmtCmt(e.comment)}”</span>`:""}</li>`).join("");
   const rows=its.map((it,i)=>{ const lim=limitOf(it.category);
     return `<tr><td class="n">${i+1}</td><td>${h(fmtDate(it.date))}</td><td>${h(it.category)}</td><td>${h(it.description)}${it.km?`<br><span class="muted">${h(kmText(it))}</span>`:""}${it.over_limit&&lim?` <span class="flag">teto ${h(brl(lim))}</span>`:""}</td>
     <td>${it.receipt_path?`<button class="btn link" data-receipt="${h(it.receipt_path)}">Abrir</button>`:`<span class="muted">Sem comprovante</span>`}</td><td class="num">${h(brl(it.amount))}</td></tr>`; }).join("");
@@ -803,6 +952,15 @@ function detailHTML(r){
   </section>`;
 }
 const CANCEL={open:{}, cmt:{}};
+const RC={open:{}, cmt:{}};
+function commentHTML(r){
+  if(r.status==="cancelado") return "";
+  const id=r.id, dis=S.busy[id]?"disabled":"";
+  if(!RC.open[id]) return `<div class="btns cancelrow"><button class="btn" data-rcask="${h(id)}" ${dis}>Comentar</button></div>`;
+  return `<div class="commentbox"><label for="rc-${h(id)}">Comentário</label>
+    <textarea id="rc-${h(id)}" data-rc="${h(id)}" data-mention="1" placeholder="Escreva aqui. Use @ para chamar alguém.">${h(RC.cmt[id]||"")}</textarea>${MENTION_HINT}
+    <div class="btns"><button class="btn primary" data-act="comentario" data-id="${h(id)}" ${dis}>${S.busy[id]==="comentario"?"Enviando…":"Enviar comentário"}</button><button class="btn" data-rcno="${h(id)}" ${dis}>Voltar</button></div></div>`;
+}
 function canCancel(r){ return r.status!=="cancelado" && (isAdmin() || (isMine(r) && ["aguardando_financeiro","devolvido"].includes(r.status))); }
 function cancelHTML(r){
   if(!canCancel(r)) return "";
@@ -810,7 +968,7 @@ function cancelHTML(r){
   if(!CANCEL.open[id]) return `<div class="btns cancelrow"><button class="btn bad" data-cancelask="${h(id)}" ${dis}>Cancelar solicitação</button></div>`;
   const other=!isMine(r);
   return `<div class="cancelbox"><label for="ccmt-${h(id)}">Motivo do cancelamento${other?"":" (opcional)"}</label>
-    <textarea id="ccmt-${h(id)}" data-ccmt="${h(id)}" placeholder="${other?"Explique ao solicitante por que a solicitação foi cancelada":"Ex.: enviei em duplicidade"}">${h(CANCEL.cmt[id]||"")}</textarea>
+    <textarea id="ccmt-${h(id)}" data-ccmt="${h(id)}" data-mention="1" placeholder="${other?"Explique ao solicitante por que a solicitação foi cancelada":"Ex.: enviei em duplicidade"}">${h(CANCEL.cmt[id]||"")}</textarea>${MENTION_HINT}
     <p class="hint">${r.status==="pago"?"Esta solicitação já foi paga. Cancelar só muda o status no sistema e não estorna o pagamento.":"Depois de cancelada, a solicitação não pode mais ser alterada nem reenviada."}</p>
     <div class="btns"><button class="btn bad" data-act="cancelado" data-id="${h(id)}" ${dis}>${S.busy[id]==="cancelado"?"Cancelando…":"Confirmar cancelamento"}</button><button class="btn" data-cancelno="${h(id)}" ${dis}>Voltar</button></div></div>`;
 }
@@ -818,7 +976,7 @@ function actionsHTML(r){
   const id=r.id, dis=S.busy[id]?"disabled":"";
   let inner="";
   if(pendingFin(r) && isStaff()){
-    inner=`<label for="cmt-${h(id)}">Comentário do financeiro</label><textarea id="cmt-${h(id)}" data-cmt="${h(id)}" placeholder="Para devolver, explique o que o solicitante precisa ajustar. Obrigatório para devolver ou recusar.">${h(S.comment[id]||"")}</textarea>
+    inner=`<label for="cmt-${h(id)}">Comentário do financeiro</label><textarea id="cmt-${h(id)}" data-cmt="${h(id)}" data-mention="1" placeholder="Para devolver, explique o que o solicitante precisa ajustar. Obrigatório para devolver ou recusar.">${h(S.comment[id]||"")}</textarea>${MENTION_HINT}
       <div class="btns"><button class="btn ok" data-act="aprovado" data-id="${h(id)}" ${dis}>Aprovar</button>
       <button class="btn" data-act="devolvido" data-id="${h(id)}" ${dis}>Devolver para ajuste</button>
       <button class="btn bad" data-act="recusado" data-id="${h(id)}" ${dis}>Recusar</button></div>`;
@@ -829,9 +987,9 @@ function actionsHTML(r){
   } else if(r.status==="devolvido" && isMine(r)){
     inner=`<div class="btns" style="margin-top:0"><button class="btn primary" data-edit="${h(id)}">Corrigir e reenviar</button></div>`;
   }
-  const cx=cancelHTML(r);
-  if(!inner && !cx) return "";
-  return `<div class="actions">${inner}${cx}${stepsHTML(S.steps[id]||[])}</div>`;
+  const cx=cancelHTML(r), cm=commentHTML(r);
+  if(!inner && !cx && !cm) return "";
+  return `<div class="actions">${inner}${cm}${cx}${stepsHTML(S.steps[id]||[])}</div>`;
 }
 const listOrEmpty = (items, txt) => items.length ? `<div class="list">${items.map(rowHTML).join("")}</div>` : `<div class="empty">${txt}</div>`;
 const sum = a => a.reduce((s,r)=>s+(Number(r.total)||0),0);
@@ -1118,8 +1276,8 @@ function tiModesFor(c){
 function tiModeForm(c, mode){
   const id=c.id, busy=T.busy[id]?"disabled":"", today=todayISO();
   const fld=(k,label,type,extra)=>`<div class="field"><label for="tc-${h(id)}-${k}">${label}</label>${type==="area"
-      ?`<textarea id="tc-${h(id)}-${k}" data-tc="${h(id)}" data-k="${k}" ${extra||""} ${busy}>${h(tiV(id,k))}</textarea>`
-      :`<input type="${type}" id="tc-${h(id)}-${k}" data-tc="${h(id)}" data-k="${k}" value="${h(tiV(id,k))}" ${extra||""} ${busy}>`}</div>`;
+      ?`<textarea id="tc-${h(id)}-${k}" data-tc="${h(id)}" data-k="${k}" ${k==="comment"?'data-mention="1"':""} ${extra||""} ${busy}>${h(tiV(id,k))}</textarea>`
+      :`<input type="${type}" id="tc-${h(id)}-${k}" data-tc="${h(id)}" data-k="${k}" ${k==="comment"?'data-mention="1"':""} value="${h(tiV(id,k))}" ${extra||""} ${busy}>`}${k==="comment"?MENTION_HINT:""}</div>`;
   let body="", go="Confirmar";
   if(mode==="previsao"){ body=fld("prazo","Previsão de entrega","date",`min="${today}"`)+fld("comment","Observação para o solicitante (opcional)","area"); go="Confirmar previsão"; }
   else if(mode==="falta"){ body=fld("pending","O que ainda falta","area",`placeholder="Liste o material pendente, um item por linha"`)
@@ -1201,7 +1359,7 @@ async function tiDo(id, mode){
     }
     step("Salvando…");
     if(upd.prazo && upd.prazo!==c.prazo) entry.prazo=upd.prazo;
-    upd.history=[...(c.history||[]), {at:new Date().toISOString(), by_name:S.profile.full_name, action, comment, ...entry}];
+    upd.history=[...(c.history||[]), withMentions({at:new Date().toISOString(), by_name:S.profile.full_name, action, comment, ...entry})];
     const { error } = await sb.from("chamados").update(upd).eq("id", id);
     if(error) throw error;
     T.inp[id]={}; T.mode[id]=""; T.steps[id]=[]; T.files[id]=[];
@@ -1245,7 +1403,7 @@ function tiRow(c){
   </button>${open?tiDetail(c):""}</div>`;
 }
 function tiDetail(c){
-  const hist=(c.history||[]).map(e=>`<li><span class="when">${h(fmtWhen(e.at))}</span>, ${h(e.by_name||"Alguém")}: ${h(TI_ACTION[e.action]||e.action)}${e.prazo?`, prazo ${h(fmtDate(e.prazo))}`:""}${e.meeting_at?`, ${h(tiWhenMeeting(e.meeting_at))}`:""}${e.files?`, ${e.files} anexo${e.files>1?"s":""}`:""}${e.pending?`<span class="cmt">Pendente: ${h(e.pending)}</span>`:""}${e.comment?`<span class="cmt">“${h(e.comment)}”</span>`:""}</li>`).join("");
+  const hist=(c.history||[]).map(e=>`<li><span class="when">${h(fmtWhen(e.at))}</span>, ${h(e.by_name||"Alguém")}: ${h(TI_ACTION[e.action]||e.action)}${e.prazo?`, prazo ${h(fmtDate(e.prazo))}`:""}${e.meeting_at?`, ${h(tiWhenMeeting(e.meeting_at))}`:""}${e.files?`, ${e.files} anexo${e.files>1?"s":""}`:""}${e.pending?`<span class="cmt">Pendente: ${h(e.pending)}</span>`:""}${e.comment?`<span class="cmt">“${fmtCmt(e.comment)}”</span>`:""}</li>`).join("");
   const att=(c.attachments||[]).map(a=>`<li><button class="btn link" data-tifile="${h(a.path)}">${h(a.name)}</button> <span class="muted small">${h(a.by_name||"")}${a.at?`, ${h(fmtDateShort(a.at))}`:""}</span></li>`).join("");
   const meeting = !c.needs_meeting ? "Não foi pedida" : c.meeting_at ? `Agendada: ${tiWhenMeeting(c.meeting_at)}` : `Pedida${c.meeting_pref?`, disponibilidade: ${c.meeting_pref}`:", ainda não agendada"}`;
   const prazo = c.prazo ? `${fmtDate(c.prazo)}${c.prazo_revisions?` (revisado ${c.prazo_revisions}x, original ${fmtDate(c.prazo_original)})`:""}${tiLate(c)?`, atrasado ${tiDays(c.prazo,todayISO())} dia(s)`:""}` : "Ainda não definido";
@@ -1406,7 +1564,14 @@ function tiChange(t){
 
 /* ---------- eventos ---------- */
 document.addEventListener("click", async ev=>{
+  if(N.open && !ev.target.closest("#notif,#bell")){ N.open=false; renderNotif(); }
   const t=ev.target.closest("button,a"); if(!t) return;
+  if(t.dataset.mpick!=null){ mentionPick(Number(t.dataset.mpick)); return; }
+  if(t.dataset.notif){ openNotif(t.dataset.notif); return; }
+  if(t.dataset.action==="bell"){ N.open=!N.open; renderNotif(); if(N.open) loadNotifs().then(renderNotif); return; }
+  if(t.dataset.action==="notif-all"){ const now=new Date().toISOString(); N.list.forEach(n=>{ if(!n.read_at) n.read_at=now; }); renderNotif(); await sb.from("notifications").update({read_at:now}).is("read_at",null).eq("user_id",myId()); return; }
+  if(t.dataset.rcask){ RC.open[t.dataset.rcask]=true; S.steps[t.dataset.rcask]=[]; render(); const x=document.getElementById("rc-"+t.dataset.rcask); if(x) x.focus(); return; }
+  if(t.dataset.rcno){ RC.open[t.dataset.rcno]=false; S.steps[t.dataset.rcno]=[]; render(); return; }
   if(t.dataset.auth){ S.authMode=t.dataset.auth; S.authErr=null; S.authMsg=null; renderAuth(); const f=document.querySelector("#auth-form input"); if(f) f.focus(); return; }
   if(t.dataset.go){ closeMenu(); go(t.dataset.go); return; }
   if(t.dataset.nav){
@@ -1469,6 +1634,7 @@ document.addEventListener("click", async ev=>{
 });
 document.addEventListener("input", ev=>{
   const t=ev.target;
+  if(t.dataset && t.dataset.mention) mentionCheck(t);
   if(t.dataset.a){ S.auth[t.dataset.a]=t.value; return; }
   if(tiInput(t)) return;
   if(t.dataset.f){ S.form[t.dataset.f]=t.value; if(S.formErr[t.dataset.f]){ delete S.formErr[t.dataset.f]; const e=document.getElementById("err-"+t.dataset.f); if(e) e.remove(); }
@@ -1480,6 +1646,7 @@ document.addEventListener("input", ev=>{
     return; }
   if(t.dataset.cmt){ S.comment[t.dataset.cmt]=t.value; return; }
   if(t.dataset.ccmt){ CANCEL.cmt[t.dataset.ccmt]=t.value; return; }
+  if(t.dataset.rc){ RC.cmt[t.dataset.rc]=t.value; return; }
   if(t.dataset.pay){ S.payDate[t.dataset.pay]=t.value; return; }
   if(t.dataset.lim!=null){ S.draft.limits[t.dataset.lim]=t.value; return; }
   if(t.dataset.kmrate!=null){ S.draft.km_rate=t.value; return; }
@@ -1496,7 +1663,17 @@ document.addEventListener("change", async ev=>{
     await loadUsers(); S.busy["u"+id]=false; render();
   }
 });
-document.addEventListener("keydown", ev=>{ if(ev.key==="Escape") closeMenu(); });
+document.addEventListener("keydown", ev=>{
+  if(MP.el && ev.target===MP.field){
+    if(ev.key==="ArrowDown"){ ev.preventDefault(); MP.idx=(MP.idx+1)%MP.items.length; mentionCheck(MP.field); return; }
+    if(ev.key==="ArrowUp"){ ev.preventDefault(); MP.idx=(MP.idx-1+MP.items.length)%MP.items.length; mentionCheck(MP.field); return; }
+    if(ev.key==="Enter"||ev.key==="Tab"){ ev.preventDefault(); mentionPick(MP.idx); return; }
+    if(ev.key==="Escape"){ ev.preventDefault(); mentionClose(); return; }
+  }
+  if(ev.key==="Escape"){ closeMenu(); if(N.open){ N.open=false; renderNotif(); } }
+});
+document.addEventListener("focusout", ev=>{ if(MP.el && ev.target===MP.field) setTimeout(()=>{ if(document.activeElement!==MP.field) mentionClose(); },150); });
+window.addEventListener("resize", mentionClose);
 document.addEventListener("submit", ev=>{
   ev.preventDefault();
   if(ev.target.id==="auth-form"){ if(!S.authBusy) authSubmit(); }
