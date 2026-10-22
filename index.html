@@ -297,6 +297,7 @@ input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="rh.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -345,9 +346,12 @@ const PROCESSES = [
     icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M10 4h20v32l-3.3-2.5L23.3 36 20 33.5 16.7 36l-3.4-2.5L10 36z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M15 12h10M15 17h10M15 22h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' },
   { id:"ti", title:"Chamados de TI",
     desc:"Peça demandas à equipe de TI, envie os materiais necessários e acompanhe a previsão de entrega.",
-    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="7" width="30" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M14 33h12M20 27v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M15 14l-3 3 3 3M25 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' }
+    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="7" width="30" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M14 33h12M20 27v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M15 14l-3 3 3 3M25 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' },
+  { id:"rh", title:"Portal do Colaborador",
+    desc:"Férias, aniversariantes, eventos, vale-refeição, benefícios, documentos e banco de horas.",
+    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="15" cy="13" r="5.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M5 33c1-6 5-9.5 10-9.5s9 3.5 10 9.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M27 8.5a5 5 0 0 1 0 9.5M30.5 24c2.5 1.5 4 4.5 4.5 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }
 ];
-const ROUTES = ["home","reembolsos","ti","usuarios"];
+const ROUTES = ["home","reembolsos","ti","rh","usuarios"];
 
 function cleanSupabaseUrl(u){
   u=String(u||"").trim();
@@ -547,6 +551,7 @@ function relTime(iso){
   return fmtDate(isoLocal(new Date(iso)));
 }
 function notifText(n){
+  if(n.process==="rh") return `<strong>${h(n.actor_name||"Alguém")}</strong> ${h((typeof RH_ACTION!=="undefined"&&RH_ACTION[n.action])||n.action)} <strong>${h(n.ref_code||"")}</strong>`;
   const where = n.process==="ti" ? "no chamado" : "na solicitação";
   if(n.kind==="mencao") return `<strong>${h(n.actor_name||"Alguém")}</strong> mencionou você ${where} <strong>${h(n.ref_code||"")}</strong>`;
   const lbl = n.process==="ti" ? (TI_ACTION[n.action]||n.action) : (ACTION_LABEL[n.action]||n.action);
@@ -571,6 +576,7 @@ async function openNotif(id){
   const n=N.list.find(x=>x.id===id); if(!n) return;
   N.open=false;
   if(!n.read_at){ n.read_at=new Date().toISOString(); sb.from("notifications").update({read_at:n.read_at}).eq("id",id).then(()=>{}); }
+  if(n.process==="rh"){ if(typeof RH!=="undefined"){ await RH.load(); go("rh"); RH.openNotif(n); render(); } return; }
   if(n.process==="ti"){ await loadChamados(); } else { await loadRequests(); }
   go(n.process);
   if(n.process==="ti"){
@@ -604,11 +610,11 @@ function applyFocus(){
 async function loadAll(){
   await loadProfile();
   if(S.profile && S.profile.status==="aprovado"){
-    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs()]);
+    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs(), typeof RH!=="undefined"?RH.load():null]);
   }
   render();
 }
-async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers(), loadChamados(), loadNotifs()]); render(); } }
+async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers(), loadChamados(), loadNotifs(), typeof RH!=="undefined"?RH.load():null]); render(); } }
 
 /* ---------- ações ---------- */
 const stepsHTML = steps => steps.length ? `<div class="progress" role="status">${steps.map(h).join("<br>")}</div>` : "";
@@ -790,6 +796,7 @@ function go(mod){
   S.module=mod; S.openId=null; S.draft=null; S.flash=null; S.focusId=null; T.focusId=null;
   if(mod!=="reembolsos"){ S.showForm=false; S.editId=null; S.form={}; S.formErr={}; }
   if(mod!=="ti"){ T.showForm=false; T.form={}; T.formErr={}; T.openId=null; }
+  if(mod!=="rh" && typeof RH!=="undefined") RH.leave();
   const want = mod==="home" ? "" : "#"+mod;
   if(location.hash!==want) history.pushState(null, "", location.pathname + location.search + want);
   if(mod==="reembolsos"||mod==="ti") $("#view").innerHTML="";
@@ -806,6 +813,7 @@ function renderHeader(){
   const ok=approved(), m = ok && S.module!=="home" ? moduleInfo() : null;
   let sub=null;
   if(m && S.module==="reembolsos") sub=({minhas:"Minhas solicitações",financeiro:"Financeiro",config:"Configurações"})[S.tab];
+  if(m && S.module==="rh" && typeof RH!=="undefined") sub=RH.crumb();
   if(m && S.module==="ti") sub=({meus:"Meus chamados",fila:"Fila do TI",congelados:"Congelados"})[T.tab];
   const lg=$("#logo"); if(lg.getAttribute("src")!==LOGO_SRC) lg.src=LOGO_SRC;
   $("#crumbs").innerHTML = !ok ? "" : m
@@ -846,6 +854,7 @@ function renderTabs(){
     <div class="nav-sub">${rTabs.map(([k,l,c])=>item("reembolsos:"+k,l,"",inR&&S.tab===k,c)).join("")}</div>
     ${item("ti:meus","Chamados de TI",ICONS.ti,false, inT?0:sumC(tTabs))}
     <div class="nav-sub">${tTabs.map(([k,l,c])=>item("ti:"+k,l,"",inT&&T.tab===k,c)).join("")}</div>
+    ${typeof RH!=="undefined"?RH.nav(item):""}
     ${isAdmin()?`<div class="nav-label">ADMINISTRAÇÃO</div>${item("usuarios","Usuários",ICONS.users,S.module==="usuarios",pendU)}`:""}
   </nav>`;
 }
@@ -878,6 +887,7 @@ function renderView(){
   if(S.module==="home") return renderHome(v);
   if(S.module==="usuarios") return isAdmin() ? renderUsers(v) : go("home");
   if(S.module==="ti") return tiRenderView(v);
+  if(S.module==="rh"){ if(typeof RH!=="undefined") return RH.render(v); v.innerHTML=`<div class="notice err">O arquivo rh.js não foi encontrado. Envie o rh.js para o GitHub junto com o index.html.</div>`; return; }
   if(!S.reqLoaded){ v.innerHTML=`<div class="empty">Carregando solicitações…</div>`; return; }
   if(S.tab==="minhas") return renderMine(v);
   if(S.tab==="financeiro") return renderFinance(v);
@@ -1072,6 +1082,7 @@ function renderFinance(v){
 }
 function processStatus(p){
   if(p.id==="ti") return tiProcessStatus();
+  if(p.id==="rh") return typeof RH!=="undefined" ? RH.status() : "";
   if(p.id!=="reembolsos" || !S.reqLoaded) return "";
   const mine=S.requests.filter(isMine);
   const back=mine.filter(r=>r.status==="devolvido").length;
@@ -1110,16 +1121,17 @@ function renderUsers(v){
   const us=[...S.users].sort((a,b)=>(order[a.status]-order[b.status]) || a.full_name.localeCompare(b.full_name));
   const row=u=>{ const me=u.id===myId(), b=S.busy["u"+u.id]?"disabled":"";
     return `<div class="userrow">
-      <div><div class="desc">${h(u.full_name)}${me?" (você)":""}${u.ti?` <span class="pill ti">Equipe de TI</span>`:""}</div><div class="meta"><span>${h(u.email)}</span><span>Cadastro em ${h(fmtDate(u.created_at.slice(0,10)))}</span></div></div>
+      <div><div class="desc">${h(u.full_name)}${me?" (você)":""}${u.ti?` <span class="pill ti">Equipe de TI</span>`:""}${u.rh?` <span class="pill">RH</span>`:""}</div><div class="meta"><span>${h(u.email)}</span><span>Cadastro em ${h(fmtDate(u.created_at.slice(0,10)))}</span></div></div>
       <div><span class="badge u-${h(u.status)}">${h(USER_STATUS[u.status])}</span></div>
       <div class="uact">
         ${me?`<span class="muted small">${h(ROLE_LABEL[u.role])}</span>`:`<label class="sr" for="role-${h(u.id)}">Perfil de ${h(u.full_name)}</label><select id="role-${h(u.id)}" data-role="${h(u.id)}" ${b}>${Object.entries(ROLE_LABEL).map(([k,l])=>`<option value="${k}" ${u.role===k?"selected":""}>${l}</option>`).join("")}</select>`}
         <button class="btn" data-uti="${h(u.id)}" data-val="${u.ti?"0":"1"}" ${b}>${u.ti?"Tirar do TI":"Incluir no TI"}</button>
+        <button class="btn" data-urh="${h(u.id)}" data-val="${u.rh?"0":"1"}" ${b}>${u.rh?"Tirar do RH":"Incluir no RH"}</button>
         ${me?"":u.status==="aprovado"?`<button class="btn bad" data-ustatus="bloqueado" data-uid="${h(u.id)}" ${b}>Bloquear</button>`:`<button class="btn ok" data-ustatus="aprovado" data-uid="${h(u.id)}" ${b}>${u.status==="pendente"?"Aprovar":"Reativar"}</button>`}
       </div></div>`; };
   const pend=us.filter(u=>u.status==="pendente");
   v.innerHTML=`<div class="bar"><h2>Usuários</h2><button class="btn" data-action="refresh">Atualizar</button></div>
-    <p class="muted small" style="margin-top:0">Quem cria uma conta aparece aqui como “Aguardando aprovação” e só consegue entrar depois que você aprovar. Use “Incluir no TI” para quem atende os chamados de TI.</p>
+    <p class="muted small" style="margin-top:0">Quem cria uma conta aparece aqui como “Aguardando aprovação” e só consegue entrar depois que você aprovar. Use “Incluir no TI” para quem atende os chamados de TI e “Incluir no RH” para quem administra o Portal do Colaborador.</p>
     ${pend.length?`<h3 style="margin-top:0">Aguardando aprovação</h3><div class="panel tight">${pend.map(row).join("")}</div>`:""}
     <h3>${pend.length?"Demais usuários":"Todos os usuários"}</h3><div class="panel tight">${us.filter(u=>u.status!=="pendente").map(row).join("")||`<p class="muted">Ninguém ainda.</p>`}</div>`;
 }
@@ -1578,11 +1590,19 @@ document.addEventListener("click", async ev=>{
     closeMenu();
     const [mod,tab]=t.dataset.nav.split(":");
     if(mod==="reembolsos" && tab){ if(S.module!=="reembolsos"){ S.tab=tab; go("reembolsos"); } else { S.tab=tab; S.openId=null; S.draft=null; render(); window.scrollTo({top:0}); } }
+    else if(mod==="rh" && tab && typeof RH!=="undefined"){ RH.tab=tab; if(S.module!=="rh") go("rh"); else { render(); window.scrollTo({top:0}); } }
     else if(mod==="ti" && tab){ if(S.module!=="ti"){ T.tab=tab; go("ti"); } else { T.tab=tab; T.openId=null; render(); window.scrollTo({top:0}); } }
     else go(mod);
     return;
   }
   if(S.module==="ti" && tiClick(t)) return;
+  if(S.module==="rh" && typeof RH!=="undefined" && RH.click(t)) return;
+  if(t.dataset.urh){
+    const id=t.dataset.urh; S.busy["u"+id]=true; render();
+    const { error } = await sb.from("profiles").update({rh:t.dataset.val==="1"}).eq("id",id);
+    S.flash = error ? {kind:"warn", text:dbMessage(error)} : {kind:"ok", text: t.dataset.val==="1" ? "Pessoa incluída no RH." : "Pessoa retirada do RH."};
+    await loadUsers(); S.busy["u"+id]=false; render(); return;
+  }
   if(t.dataset.uti){
     const id=t.dataset.uti; S.busy["u"+id]=true; render();
     const { error } = await sb.from("profiles").update({ti:t.dataset.val==="1"}).eq("id",id);
@@ -1637,6 +1657,7 @@ document.addEventListener("input", ev=>{
   if(t.dataset && t.dataset.mention) mentionCheck(t);
   if(t.dataset.a){ S.auth[t.dataset.a]=t.value; return; }
   if(tiInput(t)) return;
+  if(S.module==="rh" && typeof RH!=="undefined" && RH.input(t)) return;
   if(t.dataset.f){ S.form[t.dataset.f]=t.value; if(S.formErr[t.dataset.f]){ delete S.formErr[t.dataset.f]; const e=document.getElementById("err-"+t.dataset.f); if(e) e.remove(); }
     if(t.dataset.f==="on_behalf"){ renderForm(); if(t.value==="sim"){ const x=$("#f-for"); if(x) x.focus(); } } return; }
   if(t.dataset.it!=null){ const i=Number(t.dataset.it), k=t.dataset.k; S.form.items[i][k]=t.value;
@@ -1654,6 +1675,7 @@ document.addEventListener("input", ev=>{
 document.addEventListener("change", async ev=>{
   const t=ev.target;
   if(tiChange(t)) return;
+  if(S.module==="rh" && typeof RH!=="undefined" && RH.change(t)) return;
   if(t.dataset.itfile!=null){ const i=Number(t.dataset.itfile); S.form.items[i].file=t.files&&t.files[0]||null; delete S.formErr[`i${i}_receipt`]; renderForm(); }
   if(t.dataset.it!=null && (t.dataset.k==="category"||t.dataset.k==="amount")) renderForm();
   if(t.dataset.role){
@@ -1679,6 +1701,7 @@ document.addEventListener("submit", ev=>{
   if(ev.target.id==="auth-form"){ if(!S.authBusy) authSubmit(); }
   else if(ev.target.id==="req-form"){ if(!S.formBusy) submitForm(); }
   else if(ev.target.id==="ti-form"){ if(!T.formBusy) tiSubmit(); }
+  else if(typeof RH!=="undefined") RH.submit(ev.target);
 });
 
 /* ---------- inicialização ---------- */
