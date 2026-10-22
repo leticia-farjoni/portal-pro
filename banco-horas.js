@@ -117,6 +117,7 @@ async function load(){
   const sb=B.sb;
   try{
     await sb.rpc("bh_vincular");
+    if(isAdmin()) await sb.rpc("bh_sincronizar_usuarios");
     const [cfg, per, mot, ar, fs] = await Promise.all([
       sb.from("bh_config").select("*").eq("id",1).maybeSingle(),
       sb.from("bh_periodos").select("*").order("ano",{ascending:false}).order("mes",{ascending:false}),
@@ -368,8 +369,9 @@ async function readFile(file){
   if(rows.length<2) throw new Error("A planilha não tem linhas de dados.");
   const head=rows[0].map(norm), idx={};
   for(const [k,alts] of Object.entries(COLS)){ const i=head.findIndex(hh=>alts.map(norm).includes(hh)); if(i>=0) idx[k]=i; }
-  const faltam=["matricula","data","tipo","horas","motivo"].filter(k=>idx[k]==null);
-  if(faltam.length) throw new Error("Colunas obrigatórias ausentes: "+faltam.map(k=>k==="matricula"?"Matrícula":k[0].toUpperCase()+k.slice(1)).join(", ")+".");
+  const faltam=["data","tipo","horas","motivo"].filter(k=>idx[k]==null);
+  if(idx.matricula==null && idx.email==null) faltam.unshift("Matrícula ou E-mail");
+  if(faltam.length) throw new Error("Colunas obrigatórias ausentes: "+faltam.map(k=>k.length>12?k:k[0].toUpperCase()+k.slice(1)).join(", ")+".");
   const out=[];
   rows.slice(1).forEach((r,i)=>{
     if(r.every(c=>String(c).trim()==="")) return;
@@ -389,7 +391,7 @@ function vImport(){
   const s=B.imp, b=B.busy.imp?"disabled":"";
   const rep=s.rep||s.done;
   return `<div class="panel"><h3 style="margin-top:0">Importar planilha</h3>
-    <p class="bh-muted" style="margin-top:0">Colunas: Matrícula, Nome, E-mail, Data, Tipo, Horas, Motivo, Observação. Matrícula, Data, Tipo, Horas e Motivo são obrigatórias. A matrícula vincula o lançamento; nome e e-mail servem só para conferência. Arquivo .csv, .xlsx ou .xls de até 5 MB.</p>
+    <p class="bh-muted" style="margin-top:0">Colunas: Matrícula, Nome, E-mail, Data, Tipo, Horas, Motivo, Observação. Data, Tipo, Horas e Motivo são obrigatórias, mais a Matrícula ou o E-mail para identificar o funcionário. Se as duas vierem, vale a matrícula e o e-mail serve de conferência. Arquivo .csv, .xlsx ou .xls de até 5 MB.</p>
     <div class="bh-filters"><div class="field"><label for="bh-imp-file">Arquivo</label><input type="file" id="bh-imp-file" accept=".csv,.xlsx,.xls" data-bh-file="1" ${b}></div><button type="button" class="btn" data-bh-a="modelo">Baixar modelo</button></div>
     ${s.err?`<div class="notice err">${esc(s.err)}</div>`:""}
     ${B.busy.imp?`<p class="progress">Processando…</p>`:""}
@@ -427,9 +429,8 @@ function aFunc(){
   const list=B.funcs.filter(f=>!f.excluido && (!q || norm(f.nome+" "+f.matricula+" "+f.email).includes(q)));
   const gestores=B.funcs.filter(f=>!f.excluido && f.ativo && (!e || f.id!==e.id));
   const form = e ? `<div class="panel"><h3 style="margin-top:0">${e.id?"Editar funcionário":"Novo funcionário"}</h3><div class="fields">
-      <div class="field"><label for="bh-fe-mat">Matrícula</label><input type="text" id="bh-fe-mat" data-bh-fe="matricula" value="${esc(e.matricula||"")}"></div>
-      <div class="field"><label for="bh-fe-nome">Nome</label><input type="text" id="bh-fe-nome" data-bh-fe="nome" value="${esc(e.nome||"")}"></div>
-      <div class="field"><label for="bh-fe-email">E-mail</label><input type="email" id="bh-fe-email" data-bh-fe="email" value="${esc(e.email||"")}"><span class="hint">Mesmo e-mail que a pessoa usa para entrar no portal. O vínculo é automático.</span></div>
+      <div class="field"><label for="bh-fe-mat">Matrícula (opcional)</label><input type="text" id="bh-fe-mat" data-bh-fe="matricula" value="${esc(e.matricula||"")}"></div>
+      <div class="field"><span class="lbl">Nome e e-mail</span><span>${esc(e.nome||"")}<br><span class="bh-muted">${esc(e.email||"")} · vêm do cadastro de usuários</span></span></div>
       <div class="field"><label for="bh-fe-cargo">Cargo</label><input type="text" id="bh-fe-cargo" data-bh-fe="cargo" value="${esc(e.cargo||"")}"></div>
       <div class="field"><label for="bh-fe-area">Área</label><select id="bh-fe-area" data-bh-fe="area_id"><option value="">Sem área</option>${B.areas.filter(a=>a.ativo||a.id===e.area_id).map(a=>`<option value="${a.id}" ${a.id===e.area_id?"selected":""}>${esc(a.nome)}</option>`).join("")}</select></div>
       <div class="field"><label for="bh-fe-gestor">Gestor imediato</label><select id="bh-fe-gestor" data-bh-fe="gestor_id"><option value="">Sem gestor</option>${gestores.map(g=>`<option value="${g.id}" ${g.id===e.gestor_id?"selected":""}>${esc(g.nome)} · ${esc(g.matricula)}</option>`).join("")}</select></div>
@@ -437,9 +438,10 @@ function aFunc(){
       <div class="field"><label for="bh-fe-dir">Acesso da Diretoria</label><select id="bh-fe-dir" data-bh-fe="diretoria"><option value="false" ${!e.diretoria?"selected":""}>Não</option><option value="true" ${e.diretoria?"selected":""}>Sim (visão consolidada)</option></select></div>
     </div>${e.err?`<div class="notice err" style="margin-top:12px">${esc(e.err)}</div>`:""}
     <div class="formfoot"><button type="button" class="btn" data-bh-a="fe-x">Cancelar</button><button type="button" class="btn primary" data-bh-a="fe-save" ${B.busy.fe?"disabled":""}>Salvar</button></div></div>`
-    : `<div class="bh-filters"><button type="button" class="btn primary" data-bh-a="fe-new">Novo funcionário</button><div class="field" style="flex:1"><label for="bh-fq">Buscar</label><input type="text" id="bh-fq" data-bh-fq="1" placeholder="Nome, matrícula ou e-mail" value="${esc(B.fq)}"></div></div>`;
+    : `<div class="notice" style="border-left-color:var(--brand-2)">Os funcionários do banco de horas são os usuários aprovados do portal e entram aqui automaticamente. A área também pode ser definida em Administração › Usuários. Aqui você completa matrícula, cargo, gestor imediato e acesso da Diretoria.</div>
+      <div class="bh-filters"><div class="field" style="flex:1"><label for="bh-fq">Buscar</label><input type="text" id="bh-fq" data-bh-fq="1" placeholder="Nome, matrícula ou e-mail" value="${esc(B.fq)}"></div></div>`;
   return form + (list.length?`<div class="tablewrap"><table class="bh-tbl"><thead><tr><th>Matrícula</th><th>Nome</th><th>Área</th><th>Cargo</th><th>Gestor</th><th>Situação</th><th></th></tr></thead><tbody>
-    ${list.map(f=>`<tr><td>${esc(f.matricula)}</td><td>${esc(f.nome)}<br><span class="bh-muted">${esc(f.email)}${f.user_id?" · acesso vinculado":" · aguardando primeiro acesso"}${f.diretoria?" · Diretoria":""}</span></td><td>${esc(areaNome(f.area_id))}</td><td>${esc(f.cargo||"")}</td><td>${esc((fById(f.gestor_id)||{}).nome||"")}</td><td>${f.ativo?"Ativo":"Inativo"}</td>
+    ${list.map(f=>`<tr><td>${esc(f.matricula||"—")}</td><td>${esc(f.nome)}<br><span class="bh-muted">${esc(f.email)}${f.user_id?" · acesso vinculado":" · aguardando primeiro acesso"}${f.diretoria?" · Diretoria":""}</span></td><td>${esc(areaNome(f.area_id))}</td><td>${esc(f.cargo||"")}</td><td>${esc((fById(f.gestor_id)||{}).nome||"")}</td><td>${f.ativo?"Ativo":"Inativo"}</td>
       <td style="white-space:nowrap"><button type="button" class="btn link" data-bh-fed="${f.id}">Editar</button> <button type="button" class="btn link" data-bh-fdel="${f.id}">Excluir</button></td></tr>`).join("")}
   </tbody></table></div>`:`<div class="empty">Nenhum funcionário encontrado.</div>`);
 }
@@ -543,7 +545,7 @@ async function onClick(ev){
   if(d.bhExp){ exportar(d.bhExp); return; }
   if(d.bhDirano){ B.dirAno+=Number(d.bhDirano); draw(); return; }
   if(d.bhFed){ B.fEdit={...fById(d.bhFed)}; draw(); B.el.scrollIntoView({block:"start"}); return; }
-  if(d.bhFdel){ const f=fById(d.bhFdel); if(!confirm(`Excluir ${f.nome} do banco de horas? Os lançamentos e o histórico são preservados; a pessoa deixa de aparecer nas listas e de lançar.`)) return;
+  if(d.bhFdel){ const f=fById(d.bhFdel); if(!confirm(`Excluir ${f.nome} do banco de horas? Os lançamentos e o histórico são preservados; a pessoa deixa de aparecer nas listas e de lançar. O usuário continua ativo no portal.`)) return;
     const { error } = await B.sb.from("bh_funcionarios").update({excluido:true, ativo:false, updated_at:new Date().toISOString()}).eq("id",f.id);
     if(error){ B.msg={ok:false,text:dbErr(error)}; draw(); } else await reload("Funcionário excluído (exclusão lógica)."); return; }
   if(d.bhAdd){ const k=d.bhAdd, nome=(k==="area"?B.arNew:B.moNew).trim(); if(!nome) return;
@@ -597,14 +599,14 @@ async function onClick(ev){
   else if(a==="fe-x"){ B.fEdit=null; draw(); }
   else if(a==="fe-save"){
     const e=B.fEdit; e.err=null;
-    const row={ matricula:(e.matricula||"").trim(), nome:(e.nome||"").trim(), email:(e.email||"").trim().toLowerCase(), cargo:(e.cargo||"").trim()||null,
+    const row={ matricula:(e.matricula||"").trim()||null, cargo:(e.cargo||"").trim()||null,
       area_id:e.area_id||null, gestor_id:e.gestor_id||null, ativo:String(e.ativo)!=="false", diretoria:String(e.diretoria)==="true", updated_at:new Date().toISOString() };
-    if(!row.matricula||!row.nome||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)){ e.err="Matrícula, nome e um e-mail válido são obrigatórios."; draw(); return; }
+
     if(e.id && row.gestor_id){ let g=fById(row.gestor_id), guard=0; while(g && guard++<50){ if(g.id===e.id){ e.err="Esse gestor está abaixo deste funcionário na hierarquia."; draw(); return; } g=fById(g.gestor_id); } }
     B.busy.fe=true; draw();
-    const res = e.id ? await B.sb.from("bh_funcionarios").update(row).eq("id",e.id) : await B.sb.from("bh_funcionarios").insert(row);
+    const res = await B.sb.from("bh_funcionarios").update(row).eq("id",e.id);
     B.busy.fe=false;
-    if(res.error){ e.err=/duplicate|unique/i.test(res.error.message)?"Já existe um funcionário com essa matrícula ou e-mail.":dbErr(res.error); draw(); return; }
+    if(res.error){ e.err=/duplicate|unique/i.test(res.error.message)?"Já existe outro funcionário com essa matrícula.":dbErr(res.error); draw(); return; }
     B.fEdit=null; await reload("Funcionário salvo.");
   }
 }
@@ -642,6 +644,23 @@ function onSubmit(ev){
 
 /* ---------- ponto de integração com o Portal do Colaborador ---------- */
 window.RH_BANCO_HORAS = {
+  /* Resumo para a página inicial: { cadastrado, saldo (minutos), periodo } */
+  async resumo(sb, userId){
+    try{
+      await sb.rpc("bh_vincular");
+      const f=await sb.from("bh_funcionarios").select("id").eq("user_id",userId).maybeSingle();
+      const p=await sb.from("bh_periodos").select("*").eq("status","aberto").maybeSingle();
+      if(f.error) return { ativo:false };
+      if(!f.data) return { ativo:true, cadastrado:false, periodo:p.data||null };
+      const ls=await fetchAll(()=>sb.from("bh_lancamentos").select("tipo,minutos,anulado").eq("funcionario_id",f.data.id));
+      return { ativo:true, cadastrado:true, saldo:ls.reduce((s,l)=>s+val(l),0), periodo:p.data||null };
+    }catch(e){ return { ativo:false }; }
+  },
+  formatar: sinal,
+  periodoTexto: periodoTxt,
+  /* Abre uma aba interna (inicio, novo, extrato, admin...) */
+  setTab(t){ B.tab=t; B.msg=null; if(t==="novo"){ B.fstep=null; B.ferr=null; }
+    if(B.el && document.body.contains(B.el)){ (t==="admin"?loadAdmin():Promise.resolve()).then(draw); } },
   render(el, ctx){
     B.el=el; B.sb=ctx.supabase; B.ctx=ctx;
     if(!el.dataset.bhBound){ el.dataset.bhBound="1"; el.addEventListener("click", onClick); el.addEventListener("input", onInput); el.addEventListener("change", onChange); el.addEventListener("submit", onSubmit); }
