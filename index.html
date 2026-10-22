@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Reembolsos</title>
+<title>Portal de Processos</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -221,6 +221,24 @@ fieldset.item .rm{position:absolute;top:10px;right:14px;font-size:14px}
   .uact{justify-content:flex-start}
   .who{font-size:13px}
 }
+
+/* Chamados de TI */
+:root{--ice:#1C6E8C;--ice-soft:#E0F1F7}
+.t-aberto{color:var(--brand-2)}
+.t-aguardando_material{color:var(--warn)}
+.t-em_andamento{color:var(--ok)}
+.t-concluido{color:var(--ok);background:var(--ok-soft)}
+.t-cancelado{color:var(--bad)}
+.t-congelado{color:var(--ice);background:var(--ice-soft)}
+.stamp.t-concluido,.stamp.t-congelado{background:none}
+.prz{font-weight:600;font-size:15px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.prz.late,.flag.late{color:var(--bad)}
+.flag.late{background:var(--bad-soft)}
+.pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:12px 14px}
+ul.att{margin:10px 0 0;padding-left:20px;font-size:14px}
+.tiform{display:flex;flex-direction:column;gap:12px;max-width:560px}
+input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#fff;border-radius:4px;padding:8px 12px;font-size:16px;min-height:40px}
+.pill.ti{background:var(--ice-soft);color:var(--ice)}
 </style>
 </head>
 <body>
@@ -273,22 +291,24 @@ const USER_STATUS = { pendente:"Aguardando aprovação", aprovado:"Aprovado", bl
    e crie a tela correspondente em renderView(). */
 const PORTAL_NAME = "Portal de Processos";
 const LOGO_SRC = "data:image/png;base64,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";
-const PORTAL_TAGLINE = "Processos internos da empresa em um só lugar";
 const ICONS = {
   home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 11 12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg>',
   receipt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5L6 21z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  ti:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="12" rx="1.5"/><path d="M8.5 20h7M12 16.5V20"/></svg>',
   users:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/></svg>',
   back:'<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.5 2.5 4 6l3.5 3.5"/></svg>'
 };
+const PORTAL_TAGLINE = "Processos internos da empresa em um só lugar";
 const PROCESSES = [
   { id:"reembolsos", title:"Reembolso de despesas",
     desc:"Solicite o reembolso de despesas de trabalho, anexe os comprovantes e acompanhe a análise do financeiro.",
-    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M10 4h20v32l-3.3-2.5L23.3 36 20 33.5 16.7 36l-3.4-2.5L10 36z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M15 12h10M15 17h10M15 22h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' }
+    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M10 4h20v32l-3.3-2.5L23.3 36 20 33.5 16.7 36l-3.4-2.5L10 36z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M15 12h10M15 17h10M15 22h6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>' },
+  { id:"ti", title:"Chamados de TI",
+    desc:"Peça demandas à equipe de TI, envie os materiais necessários e acompanhe a previsão de entrega.",
+    icon:'<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="7" width="30" height="20" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M14 33h12M20 27v6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M15 14l-3 3 3 3M25 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>' }
 ];
-const ROUTES = ["home","reembolsos","usuarios"];
+const ROUTES = ["home","reembolsos","ti","usuarios"];
 
-/* Aceita a URL colada com sobras (ex.: /rest/v1/, barra no fim, espaços)
-   ou o link do painel (supabase.com/dashboard/project/xxxx) e extrai a URL certa. */
 function cleanSupabaseUrl(u){
   u=String(u||"").trim();
   let m=u.match(/^https?:\/\/([a-z0-9-]+)\.supabase\.(co|in)/i);
@@ -436,11 +456,11 @@ async function loadUsers(){
 async function loadAll(){
   await loadProfile();
   if(S.profile && S.profile.status==="aprovado"){
-    await Promise.all([loadSettings(), loadRequests(), loadUsers()]);
+    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados()]);
   }
   render();
 }
-async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers()]); render(); } }
+async function refresh(){ if(S.profile && S.profile.status==="aprovado"){ await Promise.all([loadRequests(), loadUsers(), loadChamados()]); render(); } }
 
 /* ---------- ações ---------- */
 const stepsHTML = steps => steps.length ? `<div class="progress" role="status">${steps.map(h).join("<br>")}</div>` : "";
@@ -607,8 +627,10 @@ function go(mod){
   if(!ROUTES.includes(mod)) mod="home";
   S.module=mod; S.openId=null; S.draft=null; S.flash=null;
   if(mod!=="reembolsos"){ S.showForm=false; S.editId=null; S.form={}; S.formErr={}; }
+  if(mod!=="ti"){ T.showForm=false; T.form={}; T.formErr={}; T.openId=null; }
   const want = mod==="home" ? "" : "#"+mod;
   if(location.hash!==want) history.pushState(null, "", location.pathname + location.search + want);
+  if(mod==="reembolsos"||mod==="ti") $("#view").innerHTML="";
   render(); window.scrollTo({top:0});
 }
 function routeFromHash(){
@@ -620,7 +642,9 @@ window.addEventListener("popstate", ()=>{ routeFromHash(); S.openId=null; render
 function moduleInfo(){ return PROCESSES.find(p=>p.id===S.module) || (S.module==="usuarios" ? {title:"Usuários"} : null); }
 function renderHeader(){
   const ok=approved(), m = ok && S.module!=="home" ? moduleInfo() : null;
-  const sub = m && S.module==="reembolsos" ? ({minhas:"Minhas solicitações",financeiro:"Financeiro",config:"Configurações"})[S.tab] : null;
+  let sub=null;
+  if(m && S.module==="reembolsos") sub=({minhas:"Minhas solicitações",financeiro:"Financeiro",config:"Configurações"})[S.tab];
+  if(m && S.module==="ti") sub=({meus:"Meus chamados",fila:"Fila do TI",congelados:"Congelados"})[T.tab];
   const lg=$("#logo"); if(lg.getAttribute("src")!==LOGO_SRC) lg.src=LOGO_SRC;
   $("#crumbs").innerHTML = !ok ? "" : m
     ? `<span>${h(m.title)}</span>${sub?`<span class="sep">‹</span><span class="cur">${h(sub)}</span>`:""}`
@@ -628,7 +652,8 @@ function renderHeader(){
   document.title = m ? `${m.title} · ${PORTAL_NAME}` : PORTAL_NAME;
   const who=$("#who");
   if(S.session && S.profile && S.authMode!=="recovery"){
-    who.innerHTML=`<strong>${h(S.profile.full_name)}</strong>${isAdmin()?"<br>Administradora":role()==="financeiro"?"<br>Financeiro":""} · <button class="btn link" data-action="logout">Sair</button>`;
+    const r = isAdmin()?"Administradora":role()==="financeiro"?"Financeiro":S.profile.ti?"TI":"";
+    who.innerHTML=`<strong>${h(S.profile.full_name)}</strong>${r?`<br>${r}`:""} · <button class="btn link" data-action="logout">Sair</button>`;
   } else who.innerHTML="";
 }
 function approved(){ return S.session && S.profile && S.profile.status==="aprovado" && S.authMode!=="recovery"; }
@@ -639,17 +664,26 @@ function renderTabs(){
   side.hidden=!ok; mb.hidden=!ok; layout.classList.toggle("noside", !ok);
   $("#view").classList.toggle("page", ok && S.module!=="home");
   if(!ok){ side.innerHTML=""; closeMenu(); return; }
-  const tabs=[["minhas","Minhas solicitações",0]];
-  if(isStaff()) tabs.push(["financeiro","Financeiro",S.requests.filter(r=>pendingFin(r)||r.status==="aprovado").length]);
-  if(isAdmin()) tabs.push(["config","Configurações",0]);
-  if(!tabs.some(t=>t[0]===S.tab)) S.tab="minhas";
+  const rTabs=[["minhas","Minhas solicitações",0]];
+  if(isStaff()) rTabs.push(["financeiro","Financeiro",S.requests.filter(r=>pendingFin(r)||r.status==="aprovado").length]);
+  if(isAdmin()) rTabs.push(["config","Configurações",0]);
+  if(!rTabs.some(t=>t[0]===S.tab)) S.tab="minhas";
+  const tTabs=[["meus","Meus chamados",0]];
+  if(isTI()){
+    tTabs.push(["fila","Fila do TI",T.list.filter(c=>c.status==="aberto").length]);
+    tTabs.push(["congelados","Congelados",T.list.filter(c=>c.status==="congelado").length]);
+  }
+  if(!tTabs.some(t=>t[0]===T.tab)) T.tab="meus";
   const item=(nav,label,icon,active,count)=>`<button class="nav-item${active?" active":""}" data-nav="${nav}" ${active?'aria-current="page"':""}>${icon||""}<span>${h(label)}</span>${count?`<span class="count">${count}</span>`:""}</button>`;
-  const inR=S.module==="reembolsos";
+  const inR=S.module==="reembolsos", inT=S.module==="ti";
+  const sumC=a=>a.reduce((n,t)=>n+t[2],0);
   const pendU=S.users.filter(u=>u.status==="pendente").length;
   side.innerHTML = `<nav>
     ${item("home","Início",ICONS.home,S.module==="home")}
-    ${item("reembolsos:minhas","Reembolso de despesas",ICONS.receipt,false, inR?0:(isStaff()?S.requests.filter(pendingFin).length:0))}
-    <div class="nav-sub">${tabs.map(([k,l,c])=>item("reembolsos:"+k,l,"",inR&&S.tab===k,c)).join("")}</div>
+    ${item("reembolsos:minhas","Reembolso de despesas",ICONS.receipt,false, inR?0:sumC(rTabs.slice(1)))}
+    <div class="nav-sub">${rTabs.map(([k,l,c])=>item("reembolsos:"+k,l,"",inR&&S.tab===k,c)).join("")}</div>
+    ${item("ti:meus","Chamados de TI",ICONS.ti,false, inT?0:sumC(tTabs))}
+    <div class="nav-sub">${tTabs.map(([k,l,c])=>item("ti:"+k,l,"",inT&&T.tab===k,c)).join("")}</div>
     ${isAdmin()?`<div class="nav-label">ADMINISTRAÇÃO</div>${item("usuarios","Usuários",ICONS.users,S.module==="usuarios",pendU)}`:""}
   </nav>`;
 }
@@ -657,7 +691,7 @@ function openMenu(){ $("#side").classList.add("open"); $("#scrim").classList.add
 function closeMenu(){ $("#side").classList.remove("open"); $("#scrim").classList.remove("show"); $("#menu-btn").setAttribute("aria-expanded","false"); }
 function decorateTitle(){
   if(!approved() || S.module==="home") return;
-  const h2=document.querySelector("#listslot > .bar h2, #view > .bar h2");
+  const h2=document.querySelector("#listslot > .bar h2, #ti-listslot > .bar h2, #view > .bar h2");
   if(h2 && !h2.querySelector(".back")) h2.insertAdjacentHTML("afterbegin", `<button class="back" data-go="home" aria-label="Voltar ao início">${ICONS.back}</button>`);
 }
 function renderBanner(){
@@ -670,11 +704,10 @@ function renderBanner(){
 function renderView(){
   const v=$("#view");
   if(!CONFIGURED){
-    const badUrl = URL_FILLED && !SB_URL, badKey = SB_URL && SB_KEY.length<=30 && !/COLE_AQUI/.test(SUPABASE_ANON_KEY);
-    v.innerHTML=`<div class="panel"><h2>${badUrl||badKey?"Configuração incorreta":"Falta configurar"}</h2>
-      ${badUrl?`<p>A <code>SUPABASE_URL</code> no topo do index.html não está no formato certo. Ela deve ser parecida com <code>https://abcdefgh.supabase.co</code>, sem nada depois do <code>.co</code>. Copie a <strong>Project URL</strong> em Project Settings → API (ou Data API) no Supabase.</p><p class="muted small">Valor atual: ${h(SUPABASE_URL)}</p>`
-       :badKey?`<p>A <code>SUPABASE_ANON_KEY</code> no topo do index.html parece incompleta. Copie de novo a chave <strong>anon public</strong> inteira em Project Settings → API (ou API Keys) no Supabase.</p>`
-       :`<p>Abra o arquivo <strong>index.html</strong> e preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no topo do código, como explica o README.</p>`}</div>`;
+    const badUrl = URL_FILLED && !SB_URL;
+    v.innerHTML=`<div class="panel"><h2>${badUrl?"Configuração incorreta":"Falta configurar"}</h2>
+      ${badUrl?`<p>A <code>SUPABASE_URL</code> no topo do index.html não está no formato certo. Ela deve ser parecida com <code>https://abcdefgh.supabase.co</code>, sem nada depois do <code>.co</code>.</p>`
+       :`<p>Abra o arquivo <strong>index.html</strong> e preencha <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no topo do código.</p>`}</div>`;
     return; }
   if(!S.session || S.authMode==="recovery") return renderAuth();
   if(!S.profile){ v.innerHTML = S.profileErr ? `<div class="notice err">${h(S.profileErr)} <button class="btn link" data-action="logout">Sair</button></div>` : `<div class="empty">Carregando…</div>`; return; }
@@ -682,6 +715,7 @@ function renderView(){
   if(S.profile.status==="bloqueado"){ v.innerHTML=`<div class="authwrap"><div class="panel"><h2>Acesso bloqueado</h2><p>Seu acesso foi bloqueado. Fale com a administradora do sistema.</p><div class="formfoot"><button class="btn" data-action="logout">Sair</button></div></div></div>`; return; }
   if(S.module==="home") return renderHome(v);
   if(S.module==="usuarios") return isAdmin() ? renderUsers(v) : go("home");
+  if(S.module==="ti") return tiRenderView(v);
   if(!S.reqLoaded){ v.innerHTML=`<div class="empty">Carregando solicitações…</div>`; return; }
   if(S.tab==="minhas") return renderMine(v);
   if(S.tab==="financeiro") return renderFinance(v);
@@ -851,6 +885,7 @@ function renderFinance(v){
     ${paid.length?`<h3>Pagas recentemente</h3>${listOrEmpty(paid,"")}`:""}`;
 }
 function processStatus(p){
+  if(p.id==="ti") return tiProcessStatus();
   if(p.id!=="reembolsos" || !S.reqLoaded) return "";
   const mine=S.requests.filter(isMine);
   const back=mine.filter(r=>r.status==="devolvido").length;
@@ -878,7 +913,7 @@ function renderHome(v){
       <div class="home-grid">
         <button class="proc small" data-go="usuarios">
           <span class="ptitle">Usuários</span>
-          <span class="pdesc">Aprove novos cadastros, bloqueie acessos e defina quem é do financeiro.</span>
+          <span class="pdesc">Aprove novos cadastros, bloqueie acessos e defina quem é do financeiro e da equipe de TI.</span>
           <span class="pstatus">${pend?`<span class="pill hot">${pend} ${pend===1?"cadastro aguardando":"cadastros aguardando"}</span>`:""}</span>
           <span class="pgo">Abrir <span aria-hidden="true">→</span></span>
         </button>
@@ -889,15 +924,16 @@ function renderUsers(v){
   const us=[...S.users].sort((a,b)=>(order[a.status]-order[b.status]) || a.full_name.localeCompare(b.full_name));
   const row=u=>{ const me=u.id===myId(), b=S.busy["u"+u.id]?"disabled":"";
     return `<div class="userrow">
-      <div><div class="desc">${h(u.full_name)}${me?" (você)":""}</div><div class="meta"><span>${h(u.email)}</span><span>Cadastro em ${h(fmtDate(u.created_at.slice(0,10)))}</span></div></div>
+      <div><div class="desc">${h(u.full_name)}${me?" (você)":""}${u.ti?` <span class="pill ti">Equipe de TI</span>`:""}</div><div class="meta"><span>${h(u.email)}</span><span>Cadastro em ${h(fmtDate(u.created_at.slice(0,10)))}</span></div></div>
       <div><span class="badge u-${h(u.status)}">${h(USER_STATUS[u.status])}</span></div>
       <div class="uact">
         ${me?`<span class="muted small">${h(ROLE_LABEL[u.role])}</span>`:`<label class="sr" for="role-${h(u.id)}">Perfil de ${h(u.full_name)}</label><select id="role-${h(u.id)}" data-role="${h(u.id)}" ${b}>${Object.entries(ROLE_LABEL).map(([k,l])=>`<option value="${k}" ${u.role===k?"selected":""}>${l}</option>`).join("")}</select>`}
+        <button class="btn" data-uti="${h(u.id)}" data-val="${u.ti?"0":"1"}" ${b}>${u.ti?"Tirar do TI":"Incluir no TI"}</button>
         ${me?"":u.status==="aprovado"?`<button class="btn bad" data-ustatus="bloqueado" data-uid="${h(u.id)}" ${b}>Bloquear</button>`:`<button class="btn ok" data-ustatus="aprovado" data-uid="${h(u.id)}" ${b}>${u.status==="pendente"?"Aprovar":"Reativar"}</button>`}
       </div></div>`; };
   const pend=us.filter(u=>u.status==="pendente");
   v.innerHTML=`<div class="bar"><h2>Usuários</h2><button class="btn" data-action="refresh">Atualizar</button></div>
-    <p class="muted small" style="margin-top:0">Quem cria uma conta aparece aqui como “Aguardando aprovação” e só consegue entrar depois que você aprovar.</p>
+    <p class="muted small" style="margin-top:0">Quem cria uma conta aparece aqui como “Aguardando aprovação” e só consegue entrar depois que você aprovar. Use “Incluir no TI” para quem atende os chamados de TI.</p>
     ${pend.length?`<h3 style="margin-top:0">Aguardando aprovação</h3><div class="panel tight">${pend.map(row).join("")}</div>`:""}
     <h3>${pend.length?"Demais usuários":"Todos os usuários"}</h3><div class="panel tight">${us.filter(u=>u.status!=="pendente").map(row).join("")||`<p class="muted">Ninguém ainda.</p>`}</div>`;
 }
@@ -916,6 +952,430 @@ function renderConfig(v){
   ${stepsHTML(S.steps.config||[])}`;
 }
 
+/* =====================================================================
+   PROCESSO: CHAMADOS DE TI
+   ===================================================================== */
+const TI_BUCKET = "chamados-anexos";
+const TI_STATUS = {
+  aberto:"Em análise do TI", aguardando_material:"Aguardando material", em_andamento:"Em andamento",
+  congelado:"Congelado", concluido:"Concluído", cancelado:"Cancelado"
+};
+const TI_ACTION = {
+  aberto:"Abriu o chamado", reuniao:"Agendou a reunião", previsao:"Confirmou os materiais e deu a previsão",
+  falta_material:"Pediu material pendente", prazo_revisado:"Revisou o prazo", material_enviado:"Enviou o material pedido",
+  congelado:"Congelou o chamado", descongelado:"Retomou o chamado", concluido:"Concluiu o chamado",
+  cancelado:"Cancelou o chamado", comentario:"Comentou"
+};
+const TI_CATS = ["Acesso e permissões","Sistema ou ferramenta","Relatório ou dashboard","Automação","Integração entre sistemas","Equipamento","Suporte ou problema","Outro"];
+const TI_URG = ["Baixa","Média","Alta"];
+const TI_ACTIVE = ["aberto","aguardando_material","em_andamento"];
+const TI_TYPES = { pdf:"application/pdf", jpg:"image/jpeg", jpeg:"image/jpeg", png:"image/png", webp:"image/webp", gif:"image/gif",
+  txt:"text/plain", csv:"text/csv", zip:"application/zip", doc:"application/msword", xls:"application/vnd.ms-excel", ppt:"application/vnd.ms-powerpoint",
+  docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation" };
+const TI_ACCEPT = Object.keys(TI_TYPES).map(x=>"."+x).join(",");
+const T = { list:[], loaded:false, loadErr:null, tab:"meus", openId:null,
+  showForm:false, form:{}, formErr:{}, formBusy:false, formSteps:[],
+  inp:{}, mode:{}, files:{}, busy:{}, steps:{} };
+
+/* ---------- utilidades ---------- */
+const isTI = () => !!(S.profile && (S.profile.ti || isAdmin()));
+const tiMine = c => c.requester_id===myId();
+const tiDays = (a,b) => Math.round((new Date(String(b).slice(0,10)+"T12:00:00")-new Date(String(a).slice(0,10)+"T12:00:00"))/86400000);
+const tiLate = c => c.status==="em_andamento" && c.prazo && c.prazo<todayISO();
+const tiReviewDue = c => c.status==="congelado" && (c.resume_on ? c.resume_on<=todayISO() : tiDays(c.frozen_at||c.updated_at, todayISO())>=30);
+function tiWhenMeeting(v){ if(!v) return ""; const d=new Date(v); return isNaN(d) ? v : d.toLocaleString("pt-BR",{weekday:"short",day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}); }
+function tiLocalDT(iso){ if(!iso) return ""; const d=new Date(iso), p=n=>String(n).padStart(2,"0"); return `${isoLocal(d)}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+const tiV = (id,k) => ((T.inp[id]||{})[k]) || "";
+const tiSortBy = (a,key) => [...a].sort((x,y)=>String(x[key]||"9999").localeCompare(String(y[key]||"9999")));
+const tiPre = s => h(s).replace(/(https?:\/\/[^\s<]+)/g, u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+function tiDbMessage(e){
+  const m=(e&&e.message)||"";
+  if(/chamados.*(does not exist|schema cache)|relation .*chamados/i.test(m)) return "O banco ainda não tem as tabelas de chamados. Rode o arquivo chamados-ti.sql no SQL Editor do Supabase.";
+  return dbMessage(e);
+}
+
+/* ---------- anexos ---------- */
+async function tiUpload(file, folder){
+  let blob=file, ext=(file.name.split(".").pop()||"").toLowerCase(), type=TI_TYPES[ext]||(file.type||"").toLowerCase();
+  if(!Object.values(TI_TYPES).includes(type)) throw new Error(`“${file.name}”: tipo de arquivo não aceito. Envie PDF, imagem, Word, Excel, PowerPoint, CSV, TXT ou ZIP.`);
+  if(/^image\//.test(type) && type!=="image/gif" && file.size>1500000){ blob=await shrinkImage(file,1500000); type="image/jpeg"; ext="jpg"; }
+  if(blob.size>20*1048576) throw new Error(`“${file.name}” passa de 20 MB.`);
+  const base=asciiName(file.name.replace(/\.[^.]+$/,""))||"arquivo";
+  const path=`${myId()}/${folder}/${Date.now().toString(36)}-${base}.${ext}`;
+  const { error } = await sb.storage.from(TI_BUCKET).upload(path, blob, { contentType:type, upsert:false });
+  if(error) throw new Error(`Não foi possível enviar “${file.name}”: ${dbMessage(error)}`);
+  return { path, name:file.name, type, size:blob.size, by_name:S.profile.full_name, at:new Date().toISOString() };
+}
+async function tiUploadAll(key, folder, step){
+  const fs=T.files[key]||[], out=[];
+  for(let i=0;i<fs.length;i++){ step(`Enviando arquivo ${i+1} de ${fs.length}…`); out.push(await tiUpload(fs[i], folder)); }
+  return out;
+}
+async function tiOpenFile(path){
+  const w=window.open("", "_blank");
+  const { data, error } = await sb.storage.from(TI_BUCKET).createSignedUrl(path, 600);
+  if(error || !data){ if(w) w.close(); S.flash={kind:"warn", text:"Não foi possível abrir o arquivo: "+dbMessage(error)}; render(); return; }
+  if(w) w.location=data.signedUrl; else location.href=data.signedUrl;
+}
+const tiFilesHint = key => { const fs=T.files[key]||[]; return fs.length ? fs.map(f=>h(f.name)).join(", ") : "PDF, imagem, Word, Excel, PowerPoint, CSV ou ZIP, até 20 MB cada"; };
+
+/* ---------- carregamento ---------- */
+async function loadChamados(){
+  const { data, error } = await sb.from("chamados").select("*").order("updated_at",{ascending:false});
+  if(error){ T.loadErr=tiDbMessage(error); } else { T.list=data||[]; T.loadErr=null; }
+  T.loaded=true;
+}
+
+/* ---------- abrir chamado ---------- */
+async function tiSubmit(){
+  const f=T.form, err={};
+  if(!f.title || f.title.trim().length<3) err.title="Dê um título curto, por exemplo “Relatório de vendas por loja”.";
+  if(!f.category) err.category="Escolha o tipo de demanda.";
+  if(!f.description || f.description.trim().length<10) err.description="Explique a demanda: o que precisa, para quem e por quê.";
+  if(f.needs_meeting!=="sim" && f.needs_meeting!=="nao") err.needs_meeting="Diga se precisa de uma reunião para explicar a demanda.";
+  if(f.desired_date && f.desired_date<todayISO()) err.desired_date="A data desejada não pode estar no passado.";
+  T.formErr=err;
+  if(Object.keys(err).length){ tiRenderForm(); const first=document.querySelector("#ti-form .err"); if(first) first.scrollIntoView({block:"center"}); return; }
+  T.formBusy=true; T.formSteps=[]; tiRenderForm();
+  const step=t=>{ T.formSteps.push(t); tiRenderForm(); };
+  try{
+    const id=f.id||(f.id=crypto.randomUUID());
+    if(!f.uploaded) f.uploaded=await tiUploadAll("new", id, step);
+    step("Registrando o chamado…");
+    const now=new Date().toISOString();
+    const res=await sb.from("chamados").insert({
+      id, title:f.title.trim(), category:f.category, urgency:f.urgency||"Média", desired_date:f.desired_date||null,
+      description:f.description.trim(), needs_meeting:f.needs_meeting==="sim", meeting_pref:f.needs_meeting==="sim"?(f.meeting_pref||"").trim():null,
+      materials:(f.materials||"").trim()||null, attachments:f.uploaded,
+      history:[{at:now, by_name:S.profile.full_name, action:"aberto", comment:""}]
+    }).select().single();
+    if(res.error) throw res.error;
+    S.flash={kind:"ok", text:`Chamado ${res.data.code} aberto. A equipe de TI vai verificar se tem tudo o que precisa.`};
+    T.showForm=false; T.form={}; T.formErr={}; T.files.new=[]; T.openId=res.data.id;
+    await loadChamados();
+  }catch(e){
+    T.formErr={submit: e instanceof Error && !e.code ? e.message : tiDbMessage(e)};
+  }finally{ T.formBusy=false; T.formSteps=[]; render(); }
+}
+
+/* ---------- ações ---------- */
+const TI_MODES = {
+  previsao:{label:c=>c.status==="aguardando_material"?"Material completo, dar previsão":"Tenho tudo, dar previsão", cls:"ok"},
+  falta:{label:c=>c.status==="aguardando_material"?"Atualizar pendências":c.status==="em_andamento"?"Solicitar material":"Falta material", cls:""},
+  revisar:{label:()=>"Revisar prazo", cls:""},
+  reuniao:{label:c=>c.meeting_at?"Remarcar reunião":"Registrar reunião", cls:""},
+  concluir:{label:()=>"Concluir", cls:"ok"},
+  congelar:{label:()=>"Congelar", cls:""},
+  descongelar:{label:()=>"Retomar chamado", cls:"ok"},
+  material:{label:()=>"Enviar material pendente", cls:"primary"},
+  comentario:{label:()=>"Comentar", cls:""},
+  cancelar:{label:()=>"Cancelar chamado", cls:"bad"}
+};
+function tiModesFor(c){
+  const out=[], it=isTI(), mine=tiMine(c), s=c.status;
+  if(mine && s==="aguardando_material") out.push("material");
+  if(it){
+    if(s==="aberto"||s==="aguardando_material") out.push("previsao","falta");
+    if(s==="em_andamento") out.push("concluir","revisar","falta");
+    if(s==="aguardando_material" && c.prazo) out.push("revisar");
+    if(TI_ACTIVE.includes(s) && c.needs_meeting) out.push("reuniao");
+    if(TI_ACTIVE.includes(s)) out.push("congelar");
+    if(s==="congelado") out.push("descongelar");
+  }
+  if((it||mine) && (TI_ACTIVE.includes(s)||s==="congelado")) out.push("comentario","cancelar");
+  return [...new Set(out)];
+}
+function tiModeForm(c, mode){
+  const id=c.id, busy=T.busy[id]?"disabled":"", today=todayISO();
+  const fld=(k,label,type,extra)=>`<div class="field"><label for="tc-${h(id)}-${k}">${label}</label>${type==="area"
+      ?`<textarea id="tc-${h(id)}-${k}" data-tc="${h(id)}" data-k="${k}" ${extra||""} ${busy}>${h(tiV(id,k))}</textarea>`
+      :`<input type="${type}" id="tc-${h(id)}-${k}" data-tc="${h(id)}" data-k="${k}" value="${h(tiV(id,k))}" ${extra||""} ${busy}>`}</div>`;
+  let body="", go="Confirmar";
+  if(mode==="previsao"){ body=fld("prazo","Previsão de entrega","date",`min="${today}"`)+fld("comment","Observação para o solicitante (opcional)","area"); go="Confirmar previsão"; }
+  else if(mode==="falta"){ body=fld("pending","O que ainda falta","area",`placeholder="Liste o material pendente, um item por linha"`)
+      +fld("prazo",c.prazo?"Prazo revisado (opcional, mantém o atual se ficar vazio)":"Prazo estimado (opcional)","date",`min="${today}"`)
+      +(c.prazo?fld("comment","Motivo da mudança de prazo (se mudar)","text"):""); go="Pedir material"; }
+  else if(mode==="revisar"){ body=fld("prazo","Novo prazo","date",`min="${today}"`)+fld("comment","Motivo da revisão","area"); go="Revisar prazo"; }
+  else if(mode==="reuniao"){ body=(c.meeting_pref?`<p class="small muted" style="margin:0">Disponibilidade informada: ${h(c.meeting_pref)}</p>`:"")
+      +fld("meeting_at","Data e hora da reunião","datetime-local")+fld("comment","Link ou local (opcional)","text"); go="Registrar reunião"; }
+  else if(mode==="concluir"){ body=fld("comment","O que foi entregue (opcional)","area"); go="Concluir chamado"; }
+  else if(mode==="congelar"){ body=`<p class="small muted" style="margin:0">O chamado sai da fila ativa e fica na aba Congelados, sem ser esquecido.</p>`
+      +fld("comment","Por que não será priorizado agora","area")+fld("resume_on","Revisitar em (opcional)","date",`min="${today}"`); go="Congelar chamado"; }
+  else if(mode==="descongelar"){ body=fld("comment","Observação (opcional)","text"); go="Retomar"; }
+  else if(mode==="material"){ body=`<div class="notice" style="margin:0"><strong>Pendente:</strong><br>${tiPre(c.pending||"")}</div>`
+      +fld("comment","O que você está enviando","area",`placeholder="Descreva o material e cole links, se houver"`)
+      +`<div class="field"><label for="tfile-${h(id)}">Anexos (opcional)</label><input type="file" multiple id="tfile-${h(id)}" data-tfile="${h(id)}" accept="${TI_ACCEPT}" ${busy}><span class="hint">${tiFilesHint(id)}</span></div>`; go="Enviar para o TI"; }
+  else if(mode==="comentario"){ body=fld("comment","Comentário","area"); go="Enviar comentário"; }
+  else if(mode==="cancelar"){ body=fld("comment","Motivo do cancelamento","area"); go="Cancelar chamado"; }
+  return `<div class="tiform">${body}
+    <div class="btns"><button class="btn ${mode==="cancelar"?"bad":"primary"}" data-ta="do" data-id="${h(id)}" data-mode="${mode}" ${busy}>${T.busy[id]?"Salvando…":go}</button>
+    <button class="btn" data-ta="mode" data-id="${h(id)}" data-mode="" ${busy}>Voltar</button></div></div>`;
+}
+function tiActionsHTML(c){
+  const modes=tiModesFor(c); if(!modes.length) return "";
+  const cur=T.mode[c.id];
+  const inner = cur ? tiModeForm(c, cur)
+    : `<p class="lbl" style="margin:0">${isTI()&&c.status==="aberto"?"Verificação do TI: os materiais estão completos?":"Ações"}</p>
+       <div class="btns">${modes.map(m=>`<button class="btn ${TI_MODES[m].cls}" data-ta="mode" data-id="${h(c.id)}" data-mode="${m}">${h(TI_MODES[m].label(c))}</button>`).join("")}</div>`;
+  return `<div class="actions">${inner}${stepsHTML(T.steps[c.id]||[])}</div>`;
+}
+
+async function tiDo(id, mode){
+  const c=T.list.find(x=>x.id===id); if(!c) return;
+  const v=k=>tiV(id,k).trim();
+  const fail=(msg,k)=>{ T.steps[id]=[msg]; render(); const el=document.getElementById(`tc-${id}-${k}`); if(el) el.focus(); };
+  const today=todayISO(), comment=v("comment");
+  let upd={}, action="", entry={};
+  if(mode==="previsao"){
+    if(!v("prazo")) return fail("Informe a previsão de entrega.","prazo");
+    if(v("prazo")<today) return fail("A previsão não pode estar no passado.","prazo");
+    upd={status:"em_andamento", prazo:v("prazo")}; action="previsao";
+  } else if(mode==="falta"){
+    if(v("pending").length<3) return fail("Liste o que ainda falta.","pending");
+    if(v("prazo") && v("prazo")<today) return fail("O prazo não pode estar no passado.","prazo");
+    upd={status:"aguardando_material", pending:v("pending")}; if(v("prazo")) upd.prazo=v("prazo");
+    action="falta_material"; entry.pending=v("pending");
+  } else if(mode==="revisar"){
+    if(!v("prazo")) return fail("Informe o novo prazo.","prazo");
+    if(v("prazo")<today) return fail("O prazo não pode estar no passado.","prazo");
+    if(v("prazo")===c.prazo) return fail("O novo prazo é igual ao atual.","prazo");
+    if(comment.length<3) return fail("Explique o motivo da revisão.","comment");
+    upd={prazo:v("prazo")}; action="prazo_revisado";
+  } else if(mode==="reuniao"){
+    if(!v("meeting_at")) return fail("Informe a data e a hora da reunião.","meeting_at");
+    upd={meeting_at:new Date(v("meeting_at")).toISOString()}; action="reuniao"; entry.meeting_at=upd.meeting_at;
+  } else if(mode==="concluir"){
+    upd={status:"concluido"}; action="concluido";
+  } else if(mode==="congelar"){
+    if(comment.length<3) return fail("Explique por que o chamado não será priorizado agora.","comment");
+    if(v("resume_on") && v("resume_on")<today) return fail("A data para revisitar não pode estar no passado.","resume_on");
+    upd={status:"congelado", frozen_reason:comment, resume_on:v("resume_on")||null}; action="congelado";
+  } else if(mode==="descongelar"){
+    upd={status:TI_ACTIVE.includes(c.prev_status)?c.prev_status:"aberto"}; action="descongelado";
+  } else if(mode==="material"){
+    if(comment.length<3 && !(T.files[id]||[]).length) return fail("Descreva o que está enviando ou anexe um arquivo.","comment");
+    upd={status:"aberto"}; action="material_enviado";
+  } else if(mode==="comentario"){
+    if(comment.length<2) return fail("Escreva o comentário.","comment");
+    action="comentario";
+  } else if(mode==="cancelar"){
+    if(comment.length<3) return fail("Explique o motivo do cancelamento.","comment");
+    upd={status:"cancelado"}; action="cancelado";
+  }
+  T.busy[id]=true; T.steps[id]=[]; render();
+  const step=t=>{ T.steps[id].push(t); render(); };
+  try{
+    if(mode==="material"){
+      const files=await tiUploadAll(id, c.id, step);
+      if(files.length){ upd.attachments=[...(c.attachments||[]), ...files]; entry.files=files.length; }
+    }
+    step("Salvando…");
+    if(upd.prazo && upd.prazo!==c.prazo) entry.prazo=upd.prazo;
+    upd.history=[...(c.history||[]), {at:new Date().toISOString(), by_name:S.profile.full_name, action, comment, ...entry}];
+    const { error } = await sb.from("chamados").update(upd).eq("id", id);
+    if(error) throw error;
+    T.inp[id]={}; T.mode[id]=""; T.steps[id]=[]; T.files[id]=[];
+    S.flash={kind:"ok", text:`${c.code}: ${TI_ACTION[action]}.`};
+    await loadChamados();
+  }catch(e){
+    T.steps[id]=[e instanceof Error && !e.code ? e.message : tiDbMessage(e)];
+  }finally{ T.busy[id]=false; render(); }
+}
+
+/* ---------- renderização ---------- */
+function tiTabs(nav){
+  const tabs=[["meus","Meus chamados",0]];
+  if(isTI()){
+    tabs.push(["fila","Fila do TI",T.list.filter(c=>c.status==="aberto").length]);
+    tabs.push(["congelados","Congelados",T.list.filter(c=>c.status==="congelado").length]);
+  }
+  if(!tabs.some(t=>t[0]===T.tab)) T.tab="meus";
+  nav.innerHTML = tabs.map(([k,l,n])=>`<button data-titab="${k}" ${T.tab===k?'aria-current="page"':""}>${h(l)}${n?`<span class="count">${n}</span>`:""}</button>`).join("");
+}
+function tiPrazoTxt(c){
+  if(c.status==="concluido") return c.done_at?`Entregue ${fmtDateShort(c.done_at)}`:"Entregue";
+  if(c.status==="cancelado") return "";
+  return c.prazo ? `Prazo ${fmtDateShort(c.prazo)}` : "Sem prazo";
+}
+function tiRow(c){
+  const open=T.openId===c.id, last=(c.history||[]).slice(-1)[0], flags=[];
+  if(c.needs_meeting && !c.meeting_at && TI_ACTIVE.includes(c.status)) flags.push("Pediu reunião");
+  if(c.meeting_at && TI_ACTIVE.includes(c.status) && isoLocal(new Date(c.meeting_at))>=todayISO()) flags.push(`Reunião ${fmtDateShort(isoLocal(new Date(c.meeting_at)))}`);
+  if(tiLate(c)) flags.push("Atrasado");
+  if(c.prazo_revisions && TI_ACTIVE.includes(c.status)) flags.push(c.prazo_revisions===1?"Prazo revisado":`Prazo revisado ${c.prazo_revisions}x`);
+  if(c.status==="aberto" && last && last.action==="material_enviado") flags.push("Material recebido");
+  if(c.status==="aguardando_material" && tiMine(c)) flags.push("Envie o material");
+  if(tiReviewDue(c)) flags.push("Hora de revisitar");
+  if(c.urgency==="Alta" && TI_ACTIVE.includes(c.status)) flags.push("Urgência alta");
+  return `<div><button class="row" data-tiopen="${h(c.id)}" aria-expanded="${open}">
+    <div class="stub"><span class="code">${h(c.code)}</span><span class="date">${h(fmtDateShort(c.created_at))}</span></div>
+    <div class="rbody"><div class="desc">${h(c.title)}</div>
+      <div class="meta"><span>${h(c.category)}</span>${T.tab!=="meus"?`<span>${h(c.requester_name)}</span>`:""}${flags.map(f=>`<span class="flag${f==="Atrasado"?" late":""}">${h(f)}</span>`).join("")}</div></div>
+    <div class="rend"><span class="prz${tiLate(c)?" late":""}">${h(tiPrazoTxt(c))}</span><span class="badge t-${h(c.status)}">${h(TI_STATUS[c.status]||c.status)}</span></div>
+  </button>${open?tiDetail(c):""}</div>`;
+}
+function tiDetail(c){
+  const hist=(c.history||[]).map(e=>`<li><span class="when">${h(fmtWhen(e.at))}</span>, ${h(e.by_name||"Alguém")}: ${h(TI_ACTION[e.action]||e.action)}${e.prazo?`, prazo ${h(fmtDate(e.prazo))}`:""}${e.meeting_at?`, ${h(tiWhenMeeting(e.meeting_at))}`:""}${e.files?`, ${e.files} anexo${e.files>1?"s":""}`:""}${e.pending?`<span class="cmt">Pendente: ${h(e.pending)}</span>`:""}${e.comment?`<span class="cmt">“${h(e.comment)}”</span>`:""}</li>`).join("");
+  const att=(c.attachments||[]).map(a=>`<li><button class="btn link" data-tifile="${h(a.path)}">${h(a.name)}</button> <span class="muted small">${h(a.by_name||"")}${a.at?`, ${h(fmtDateShort(a.at))}`:""}</span></li>`).join("");
+  const meeting = !c.needs_meeting ? "Não foi pedida" : c.meeting_at ? `Agendada: ${tiWhenMeeting(c.meeting_at)}` : `Pedida${c.meeting_pref?`, disponibilidade: ${c.meeting_pref}`:", ainda não agendada"}`;
+  const prazo = c.prazo ? `${fmtDate(c.prazo)}${c.prazo_revisions?` (revisado ${c.prazo_revisions}x, original ${fmtDate(c.prazo_original)})`:""}${tiLate(c)?`, atrasado ${tiDays(c.prazo,todayISO())} dia(s)`:""}` : "Ainda não definido";
+  return `<section class="detail" aria-label="Detalhes de ${h(c.code)}">
+    <div class="stamp t-${h(c.status)}" aria-hidden="true">${h(TI_STATUS[c.status]||c.status)}</div>
+    <dl class="grid">
+      <div class="full"><dt>Título</dt><dd>${h(c.title)}</dd></div>
+      <div><dt>Código</dt><dd>${h(c.code)}</dd></div>
+      <div><dt>Solicitante</dt><dd>${h(c.requester_name)}</dd></div>
+      <div><dt>Tipo</dt><dd>${h(c.category)}</dd></div>
+      <div><dt>Urgência</dt><dd>${h(c.urgency)}</dd></div>
+      <div><dt>Data desejada</dt><dd>${c.desired_date?h(fmtDate(c.desired_date)):"Sem data"}</dd></div>
+      <div><dt>Previsão de entrega</dt><dd>${h(prazo)}</dd></div>
+      <div class="full"><dt>Reunião para explicar a demanda</dt><dd>${h(meeting)}</dd></div>
+      ${c.status==="congelado"?`<div class="full"><dt>Congelado</dt><dd>Desde ${h(fmtDate(c.frozen_at))}, há ${tiDays(c.frozen_at,todayISO())} dia(s). ${c.resume_on?`Revisitar em ${h(fmtDate(c.resume_on))}.`:"Sem data para revisitar."}<br><span class="muted">Motivo: ${h(c.frozen_reason)}</span></dd></div>`:""}
+    </dl>
+    ${c.status==="aguardando_material"&&c.pending?`<div class="notice"><strong>Material pendente:</strong><br>${tiPre(c.pending)}</div>`:""}
+    <h3 style="margin-top:0">Demanda</h3><div class="pre">${tiPre(c.description)}</div>
+    ${c.materials||att?`<h3>Materiais e anexos</h3>${c.materials?`<div class="pre">${tiPre(c.materials)}</div>`:""}${att?`<ul class="att">${att}</ul>`:""}`:""}
+    <h3>Histórico</h3><ol class="timeline">${hist}</ol>
+    ${tiActionsHTML(c)}
+  </section>`;
+}
+const tiList = (items, empty) => items.length ? `<div class="list">${items.map(tiRow).join("")}</div>` : `<div class="empty">${empty}</div>`;
+
+function tiRenderView(v){
+  if(!T.loaded){ v.innerHTML=`<div class="empty">Carregando chamados…</div>`; return; }
+  if(T.loadErr && !T.list.length){ v.innerHTML=`<div class="notice err">${h(T.loadErr)} <button class="btn link" data-action="refresh">Tentar de novo</button></div>`; return; }
+  if(T.tab==="meus") return tiRenderMine(v);
+  if(T.tab==="fila") return tiRenderQueue(v);
+  if(T.tab==="congelados") return tiRenderFrozen(v);
+}
+function tiRenderMine(v){
+  const mine=T.list.filter(tiMine);
+  if(!v.querySelector("#ti-formslot")) v.innerHTML=`<div id="ti-formslot"></div><div id="ti-listslot"></div>`;
+  const wait=mine.filter(c=>c.status==="aguardando_material");
+  $("#ti-listslot").innerHTML=`<div class="bar"><h2>Meus chamados</h2>${!T.showForm?`<button class="btn primary" data-ta="new">Abrir chamado</button>`:""}</div>
+    ${wait.length?`<div class="notice">O TI está esperando material seu em ${wait.length===1?"1 chamado":`${wait.length} chamados`}. Abra o chamado e clique em “Enviar material pendente”.</div>`:""}
+    ${mine.length?`<div class="totals"><div>Em aberto<strong>${mine.filter(c=>TI_ACTIVE.includes(c.status)).length}</strong></div><div>Congelados<strong>${mine.filter(c=>c.status==="congelado").length}</strong></div><div>Concluídos<strong>${mine.filter(c=>c.status==="concluido").length}</strong></div></div>`:""}
+    ${tiList(mine,"Você ainda não abriu nenhum chamado. Clique em “Abrir chamado” para pedir algo ao TI.")}`;
+  if(T.showForm && !$("#ti-form")) tiRenderForm();
+  if(!T.showForm) $("#ti-formslot").innerHTML="";
+}
+function tiRenderForm(){
+  const slot=$("#ti-formslot"); if(!slot) return;
+  const f=T.form, e=T.formErr, busy=T.formBusy?"disabled":"";
+  const er=k=>e[k]?`<span class="err" id="ti-err-${k}">${h(e[k])}</span>`:"";
+  preserveFocus(()=>{ slot.innerHTML=`<form class="sheet" id="ti-form" novalidate>
+    <div class="bar"><h2>Novo chamado para o TI</h2></div>
+    <div class="fields">
+      <div class="field wide"><label for="tf-title">Título</label><input type="text" id="tf-title" data-tf="title" placeholder="Ex.: Relatório de vendas por loja" value="${h(f.title||"")}" ${busy}>${er("title")}</div>
+      <div class="field"><label for="tf-cat">Tipo de demanda</label><select id="tf-cat" data-tf="category" ${busy}><option value="">Escolha…</option>${TI_CATS.map(x=>`<option ${f.category===x?"selected":""}>${h(x)}</option>`).join("")}</select>${er("category")}</div>
+      <div class="field"><label for="tf-urg">Urgência</label><select id="tf-urg" data-tf="urgency" ${busy}>${TI_URG.map(x=>`<option ${(f.urgency||"Média")===x?"selected":""}>${h(x)}</option>`).join("")}</select></div>
+      <div class="field wide"><label for="tf-desc">Explique a demanda</label><textarea id="tf-desc" data-tf="description" style="min-height:120px" placeholder="O que você precisa, quem vai usar, qual problema resolve e como é feito hoje" ${busy}>${h(f.description||"")}</textarea>${er("description")}</div>
+      <div class="field"><label for="tf-date">Data desejada (opcional)</label><input type="date" id="tf-date" data-tf="desired_date" min="${todayISO()}" value="${h(f.desired_date||"")}" ${busy}><span class="hint">O TI confirma a previsão real depois de analisar</span>${er("desired_date")}</div>
+      <div class="field"><span class="lbl" id="tf-mt-l">Precisa agendar uma reunião para explicar a demanda?</span>
+        <div class="radios" role="radiogroup" aria-labelledby="tf-mt-l">
+          <label><input type="radio" name="tfmt" id="tf-mt-n" data-tf="needs_meeting" value="nao" ${f.needs_meeting==="nao"?"checked":""} ${busy}> Não</label>
+          <label><input type="radio" name="tfmt" id="tf-mt-s" data-tf="needs_meeting" value="sim" ${f.needs_meeting==="sim"?"checked":""} ${busy}> Sim</label>
+        </div>${er("needs_meeting")}</div>
+      ${f.needs_meeting==="sim"?`<div class="field wide"><label for="tf-mp">Sua disponibilidade para a reunião</label><input type="text" id="tf-mp" data-tf="meeting_pref" placeholder="Ex.: terça ou quinta à tarde" value="${h(f.meeting_pref||"")}" ${busy}></div>`:""}
+      <div class="field wide"><label for="tf-mat">Materiais que você já tem (opcional)</label><textarea id="tf-mat" data-tf="materials" placeholder="Links do SharePoint, acessos, modelos, exemplos" ${busy}>${h(f.materials||"")}</textarea></div>
+      <div class="field wide"><label for="tfile-new">Anexos (opcional)</label><input type="file" multiple id="tfile-new" data-tfile="new" accept="${TI_ACCEPT}" ${busy}><span class="hint">${tiFilesHint("new")}</span></div>
+    </div>
+    ${e.submit?`<div class="notice err" style="margin:16px 0 0">${h(e.submit)}</div>`:""}
+    ${stepsHTML(T.formSteps)}
+    <div class="formfoot"><button type="button" class="btn" data-ta="cancel" ${busy}>Cancelar</button>
+      <button type="submit" class="btn primary" ${busy}>${T.formBusy?"Abrindo…":"Abrir chamado"}</button></div>
+  </form>`; });
+}
+function tiRenderQueue(v){
+  const novos=tiSortBy(T.list.filter(c=>c.status==="aberto"),"created_at");
+  const andamento=tiSortBy(T.list.filter(c=>c.status==="em_andamento"),"prazo");
+  const espera=tiSortBy(T.list.filter(c=>c.status==="aguardando_material"),"updated_at");
+  const feitos=T.list.filter(c=>c.status==="concluido").slice(0,20);
+  const late=andamento.filter(tiLate).length, due=T.list.filter(tiReviewDue).length;
+  v.innerHTML=`<div class="bar"><h2>Fila do TI</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-action="refresh">Atualizar</button><button class="btn" data-ta="sheet">Baixar planilha</button></div></div>
+    ${due?`<div class="notice">${due===1?"1 chamado congelado chegou":`${due} chamados congelados chegaram`} na hora de revisitar. <button class="btn link" data-titab="congelados">Ver congelados</button></div>`:""}
+    <div class="totals"><div>Para analisar<strong>${novos.length}</strong></div><div>Em andamento<strong>${andamento.length}</strong></div><div>Atrasados<strong${late?' style="color:var(--bad)"':""}>${late}</strong></div><div>Aguardando material<strong>${espera.length}</strong></div></div>
+    <h3 style="margin-top:0">Para analisar</h3><p class="small muted" style="margin:-6px 0 10px">Verifique se tem todo o material. Se tiver, dê a previsão; se não, peça o que falta.</p>${tiList(novos,"Nenhum chamado novo.")}
+    <h3>Em andamento, por prazo</h3>${tiList(andamento,"Nada em andamento.")}
+    <h3>Aguardando material do solicitante</h3>${tiList(espera,"Nenhum chamado esperando material.")}
+    ${feitos.length?`<h3>Concluídos recentemente</h3>${tiList(feitos,"")}`:""}`;
+}
+function tiRenderFrozen(v){
+  const fz=T.list.filter(c=>c.status==="congelado").sort((a,b)=>(tiReviewDue(b)-tiReviewDue(a)) || String(a.resume_on||"9").localeCompare(String(b.resume_on||"9")) || String(a.frozen_at).localeCompare(String(b.frozen_at)));
+  v.innerHTML=`<div class="bar"><h2>Congelados</h2></div>
+    <p class="muted small" style="margin-top:0">Chamados que não serão priorizados agora, mas não podem ser esquecidos. Aparecem primeiro os que chegaram na data de revisitar ou estão congelados há 30 dias ou mais sem data.</p>
+    ${tiList(fz,"Nenhum chamado congelado.")}`;
+}
+function tiProcessStatus(){
+  if(!T.loaded) return "";
+  const mine=T.list.filter(tiMine), parts=[];
+  if(isTI()){
+    const n=T.list.filter(c=>c.status==="aberto").length, late=T.list.filter(tiLate).length, due=T.list.filter(tiReviewDue).length;
+    if(n) parts.push(`<span class="pill hot">${n} para analisar</span>`);
+    if(late) parts.push(`<span class="pill warn">${late} ${late===1?"atrasado":"atrasados"}</span>`);
+    if(due) parts.push(`<span class="pill warn">${due} congelado${due>1?"s":""} para revisitar</span>`);
+  }
+  const wait=mine.filter(c=>c.status==="aguardando_material").length, open=mine.filter(c=>c.status==="aberto"||c.status==="em_andamento").length;
+  if(wait) parts.push(`<span class="pill warn">${wait} aguardando seu material</span>`);
+  if(open) parts.push(`<span class="pill">${open} em andamento</span>`);
+  return parts.join("");
+}
+
+/* ---------- planilha ---------- */
+function tiDownloadSheet(){
+  const rows=tiSortBy(T.list,"created_at").map(c=>({
+    "Código":c.code, "Título":c.title, "Tipo":c.category, "Urgência":c.urgency, "Solicitante":c.requester_name, "E-mail":c.requester_email,
+    "Status":TI_STATUS[c.status]||c.status, "Aberto em":fmtDate(c.created_at), "Data desejada":fmtDate(c.desired_date),
+    "Previsão de entrega":fmtDate(c.prazo), "Prazo original":fmtDate(c.prazo_original), "Revisões de prazo":c.prazo_revisions||0,
+    "Atrasado":tiLate(c)?"Sim":"", "Pediu reunião":c.needs_meeting?"Sim":"Não", "Reunião":c.meeting_at?tiWhenMeeting(c.meeting_at):"",
+    "Material pendente":c.status==="aguardando_material"?(c.pending||""):"", "Congelado em":c.status==="congelado"?fmtDate(c.frozen_at):"",
+    "Motivo do congelamento":c.frozen_reason||"", "Revisitar em":fmtDate(c.resume_on), "Concluído em":fmtDate(c.done_at), "Descrição":c.description
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{"Código":""}]);
+  ws["!cols"]=[16,34,22,10,22,28,20,12,12,14,14,10,10,10,22,40,12,36,12,12,60].map(w=>({wch:w}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Chamados");
+  XLSX.writeFile(wb, `Chamados de TI ${todayISO()}.xlsx`);
+}
+
+/* ---------- eventos do processo ---------- */
+function tiClick(t){
+  if(t.dataset.titab){ T.tab=t.dataset.titab; T.openId=null; render(); return true; }
+  if(t.dataset.tiopen){ T.openId = T.openId===t.dataset.tiopen ? null : t.dataset.tiopen; render(); return true; }
+  if(t.dataset.tifile){ tiOpenFile(t.dataset.tifile); return true; }
+  const a=t.dataset.ta; if(!a) return false;
+  if(a==="new"){ T.showForm=true; T.form={urgency:"Média"}; T.formErr={}; T.files.new=[]; render(); const el=$("#tf-title"); if(el) el.focus(); }
+  else if(a==="cancel"){ T.showForm=false; T.form={}; T.formErr={}; T.files.new=[]; render(); }
+  else if(a==="mode"){
+    const id=t.dataset.id, m=t.dataset.mode, c=T.list.find(x=>x.id===id);
+    T.mode[id]=m; T.steps[id]=[]; T.inp[id]={};
+    if(c && (m==="revisar"||m==="previsao") && c.prazo && c.prazo>=todayISO()) T.inp[id].prazo=c.prazo;
+    if(c && m==="falta" && c.status==="aguardando_material") T.inp[id].pending=c.pending||"";
+    if(c && m==="reuniao" && c.meeting_at) T.inp[id].meeting_at=tiLocalDT(c.meeting_at);
+    render(); const first=document.getElementById(`tc-${id}-${{previsao:"prazo",falta:"pending",revisar:"prazo",reuniao:"meeting_at"}[m]||"comment"}`); if(first) first.focus();
+  }
+  else if(a==="do"){ tiDo(t.dataset.id, t.dataset.mode); }
+  else if(a==="sheet"){ try{ tiDownloadSheet(); }catch(e){ S.flash={kind:"warn", text:"Não foi possível gerar a planilha."}; render(); } }
+  return true;
+}
+function tiInput(t){
+  if(t.dataset.tf){ T.form[t.dataset.tf]=t.value;
+    if(T.formErr[t.dataset.tf]){ delete T.formErr[t.dataset.tf]; const e=document.getElementById("ti-err-"+t.dataset.tf); if(e) e.remove(); }
+    if(t.dataset.tf==="needs_meeting"){ tiRenderForm(); if(t.value==="sim"){ const x=$("#tf-mp"); if(x) x.focus(); } }
+    return true; }
+  if(t.dataset.tc){ const id=t.dataset.tc; T.inp[id]=T.inp[id]||{}; T.inp[id][t.dataset.k]=t.value; return true; }
+  return false;
+}
+function tiChange(t){
+  if(t.dataset.tfile==null) return false;
+  const key=t.dataset.tfile; T.files[key]=Array.from(t.files||[]);
+  if(key==="new") T.form.uploaded=null;
+  const hint=t.parentElement && t.parentElement.querySelector(".hint"); if(hint) hint.innerHTML=tiFilesHint(key);
+  return true;
+}
+
 /* ---------- eventos ---------- */
 document.addEventListener("click", async ev=>{
   const t=ev.target.closest("button,a"); if(!t) return;
@@ -924,9 +1384,17 @@ document.addEventListener("click", async ev=>{
   if(t.dataset.nav){
     closeMenu();
     const [mod,tab]=t.dataset.nav.split(":");
-    if(tab){ if(S.module!=="reembolsos"){ S.tab=tab; go("reembolsos"); } else { S.tab=tab; S.openId=null; S.draft=null; render(); window.scrollTo({top:0}); } }
+    if(mod==="reembolsos" && tab){ if(S.module!=="reembolsos"){ S.tab=tab; go("reembolsos"); } else { S.tab=tab; S.openId=null; S.draft=null; render(); window.scrollTo({top:0}); } }
+    else if(mod==="ti" && tab){ if(S.module!=="ti"){ T.tab=tab; go("ti"); } else { T.tab=tab; T.openId=null; render(); window.scrollTo({top:0}); } }
     else go(mod);
     return;
+  }
+  if(S.module==="ti" && tiClick(t)) return;
+  if(t.dataset.uti){
+    const id=t.dataset.uti; S.busy["u"+id]=true; render();
+    const { error } = await sb.from("profiles").update({ti:t.dataset.val==="1"}).eq("id",id);
+    S.flash = error ? {kind:"warn", text:dbMessage(error)} : {kind:"ok", text: t.dataset.val==="1" ? "Pessoa incluída na equipe de TI." : "Pessoa retirada da equipe de TI."};
+    await loadUsers(); S.busy["u"+id]=false; render(); return;
   }
   if(t.dataset.tab){ S.tab=t.dataset.tab; S.openId=null; S.draft=null; render(); return; }
   if(t.dataset.open){ S.openId = S.openId===t.dataset.open ? null : t.dataset.open; render(); return; }
@@ -972,6 +1440,7 @@ document.addEventListener("click", async ev=>{
 document.addEventListener("input", ev=>{
   const t=ev.target;
   if(t.dataset.a){ S.auth[t.dataset.a]=t.value; return; }
+  if(tiInput(t)) return;
   if(t.dataset.f){ S.form[t.dataset.f]=t.value; if(S.formErr[t.dataset.f]){ delete S.formErr[t.dataset.f]; const e=document.getElementById("err-"+t.dataset.f); if(e) e.remove(); }
     if(t.dataset.f==="on_behalf"){ renderForm(); if(t.value==="sim"){ const x=$("#f-for"); if(x) x.focus(); } } return; }
   if(t.dataset.it!=null){ const i=Number(t.dataset.it), k=t.dataset.k; S.form.items[i][k]=t.value;
@@ -986,6 +1455,7 @@ document.addEventListener("input", ev=>{
 });
 document.addEventListener("change", async ev=>{
   const t=ev.target;
+  if(tiChange(t)) return;
   if(t.dataset.itfile!=null){ const i=Number(t.dataset.itfile); S.form.items[i].file=t.files&&t.files[0]||null; delete S.formErr[`i${i}_receipt`]; renderForm(); }
   if(t.dataset.it!=null && (t.dataset.k==="category"||t.dataset.k==="amount")) renderForm();
   if(t.dataset.role){
@@ -1000,6 +1470,7 @@ document.addEventListener("submit", ev=>{
   ev.preventDefault();
   if(ev.target.id==="auth-form"){ if(!S.authBusy) authSubmit(); }
   else if(ev.target.id==="req-form"){ if(!S.formBusy) submitForm(); }
+  else if(ev.target.id==="ti-form"){ if(!T.formBusy) tiSubmit(); }
 });
 
 /* ---------- inicialização ---------- */
@@ -1009,7 +1480,8 @@ document.addEventListener("submit", ev=>{
     if(event==="INITIAL_SESSION") return;
     if(event==="PASSWORD_RECOVERY"){ S.session=session; S.authMode="recovery"; S.auth={}; render(); return; }
     const had=!!S.session; S.session=session;
-    if(!session){ if(location.hash) history.replaceState(null,"",location.pathname+location.search); Object.assign(S,{profile:null, requests:[], users:[], reqLoaded:false, module:"home", tab:"minhas", showForm:false, editId:null, form:{}, authMode:"login"}); render(); }
+    if(!session){ if(location.hash) history.replaceState(null,"",location.pathname+location.search); Object.assign(S,{profile:null, requests:[], users:[], reqLoaded:false, module:"home", tab:"minhas", showForm:false, editId:null, form:{}, authMode:"login"});
+      Object.assign(T,{list:[], loaded:false, loadErr:null, tab:"meus", openId:null, showForm:false, form:{}, formErr:{}, inp:{}, mode:{}, files:{}}); render(); }
     else if(!had || event==="SIGNED_IN" && !S.profile){ setTimeout(loadAll,0); }
   });
   routeFromHash();
@@ -1017,7 +1489,7 @@ document.addEventListener("submit", ev=>{
   S.session=data.session;
   if(S.session && S.authMode!=="recovery") await loadAll(); else render();
   document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="visible") refresh(); });
-  setInterval(()=>{ if(document.visibilityState==="visible" && !S.formBusy && !S.showForm) refresh(); }, 60000);
+  setInterval(()=>{ if(document.visibilityState==="visible" && !S.formBusy && !S.showForm && !T.showForm && !Object.values(T.mode).some(Boolean)) refresh(); }, 60000);
 })();
 
 </script>
