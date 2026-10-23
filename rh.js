@@ -431,7 +431,7 @@ function rhAEventos(){
 function rhAVr(){
   const c=RH.vr || (RH.vr={ vr_valor: RH.cfg.vr_valor!=null?String(RH.cfg.vr_valor).replace(".",","):"", vr_periodicidade:RH.cfg.vr_periodicidade||"", vr_criterios:RH.cfg.vr_criterios||"", vr_regras:RH.cfg.vr_regras||"", vr_vigencia:RH.cfg.vr_vigencia||"", vr_observacoes:RH.cfg.vr_observacoes||"" });
   return `<div class="panel"><p class="muted small" style="margin-top:0">A mesma regra vale para todos os colaboradores. Deixe o valor vazio enquanto não houver informação oficial.</p><div class="fields">
-    ${rhFld("vr","vr_valor","Valor (R$)","text",c.vr_valor,'inputmode="decimal" placeholder="0,00"')}${rhFld("vr","vr_periodicidade","Periodicidade","text",c.vr_periodicidade,'placeholder="Ex.: mensal, por dia útil trabalhado"')}
+    ${rhFld("vr","vr_valor","Valor por dia (R$)","text",c.vr_valor,'inputmode="decimal" placeholder="0,00"')}${rhFld("vr","vr_periodicidade","Periodicidade","text",c.vr_periodicidade,'placeholder="Ex.: mensal, por dia útil trabalhado"')}
     ${rhFld("vr","vr_vigencia","Vigente desde","date",c.vr_vigencia)}<div></div>
     ${rhFld("vr","vr_criterios","Critérios de concessão","area",c.vr_criterios)}${rhFld("vr","vr_regras","Regras de utilização","area",c.vr_regras)}${rhFld("vr","vr_observacoes","Observações","area",c.vr_observacoes)}</div>
     ${stepsHTML(RH.steps.vr||[])}<div class="formfoot"><button class="btn primary" data-rhact="vr-save" ${RH.busy.vr?"disabled":""}>Salvar vale-refeição</button></div></div>`;
