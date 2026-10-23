@@ -1246,7 +1246,7 @@ function renderHome(v){
     const ams=RH.aniv.filter(a=>a.admission_date && Number(a.admission_date.slice(5,7))===m && Number(a.admission_date.slice(0,4))<now.getFullYear());
     if(bms.length||ams.length) anivS = hojeB.length ? `Hoje: ${h(hojeB.map(a=>a.full_name.split(" ")[0]).join(", "))}` : `${bms.length} ${bms.length===1?"aniversariante":"aniversariantes"} e ${ams.length} de tempo de casa no mês`;
     const ev=RH.eventos.find(e=>e.event_date>=today); if(ev) evS=`${h(fmtDate(ev.event_date).slice(0,5))} · ${h(ev.title)}`;
-    if(RH.cfg.vr_valor!=null) vrS=`${h(brl(RH.cfg.vr_valor))}${RH.cfg.vr_periodicidade?" · "+h(RH.cfg.vr_periodicidade):""}`;
+    if(RH.cfg.vr_valor!=null) vrS=`${h(brl(RH.cfg.vr_valor))} por dia`;
     const nb=RH.beneficios.filter(b=>b.active).length; if(nb) benS=`${nb} ${nb===1?"benefício":"benefícios"}`;
     const nd=RH.docs.filter(d=>d.status==="publicado").length; if(nd) docS=`${nd} ${nd===1?"documento":"documentos"}`;
   }
