@@ -267,6 +267,8 @@ input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
 .tile{display:flex;gap:12px;align-items:flex-start;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:14px 16px;cursor:pointer;color:var(--ink);min-height:80px}
 .tile:hover{border-color:var(--icon)}
+.tile.static{cursor:default}
+.tile.static:hover{border-color:var(--card-line)}
 .tile svg{width:24px;height:24px;color:var(--icon);flex:none;margin-top:2px}
 .tile b{display:block;font-size:15px;color:var(--navy)}
 .tile .s{display:block;font-size:13px;color:var(--ink-2);margin-top:2px}
@@ -895,7 +897,7 @@ function renderHeader(){
 }
 function approved(){ return S.session && S.profile && S.profile.status==="aprovado" && S.authMode!=="recovery"; }
 const pendingFin = r => r.status==="aguardando_financeiro";
-const RH_MENU = [["horas","Meu banco de horas","clock"],["ferias","Férias","sun"],["aniversarios","Aniversariantes","cake"],["eventos","Eventos","calendar"],["vr","Vale-refeição","card"],["beneficios","Benefícios","heart"],["documentos","Documentos e políticas","file"]];
+const RH_MENU = [["horas","Meu banco de horas","clock"],["ferias","Férias","sun"],["aniversarios","Aniversariantes","cake"],["eventos","Eventos","calendar"],["beneficios","Benefícios","heart"],["documentos","Documentos e políticas","file"]];
 function navTabs(){
   const rTabs=[["minhas","Minhas solicitações",0]];
   if(isStaff()) rTabs.push(["financeiro","Análise do financeiro",S.requests.filter(r=>pendingFin(r)||r.status==="aprovado").length]);
@@ -1235,7 +1237,9 @@ function renderHome(v){
       ${fer}
       <div class="acts">${homeAction("Solicitar férias",'data-quick="ferias"',true)}${homeAction("Acompanhar pedidos",'data-nav="rh:ferias"')}</div></article>`;
   // --- RH: atalhos com resumo
-  const tile=(tab,icon,title,sub)=>`<button type="button" class="tile" data-nav="rh:${tab}">${ICONS[icon]}<span><b>${h(title)}</b><span class="s">${sub}</span></span></button>`;
+  const tile=(tab,icon,title,sub)=> tab
+    ? `<button type="button" class="tile" data-nav="rh:${tab}">${ICONS[icon]}<span><b>${h(title)}</b><span class="s">${sub}</span></span></button>`
+    : `<div class="tile static">${ICONS[icon]}<span><b>${h(title)}</b><span class="s">${sub}</span></span></div>`;
   let anivS="Sem datas cadastradas", evS="Nenhum evento programado", vrS="Informações em breve", benS="Em breve", docS="Nenhum documento publicado";
   if(rhOk){
     const bms=RH.aniv.filter(a=>a.birth_month===m), hojeB=bms.filter(a=>a.birth_day===now.getDate());
@@ -1260,7 +1264,7 @@ function renderHome(v){
       <div class="tiles">
         ${tile("aniversarios","cake","Aniversariantes",anivS)}
         ${tile("eventos","calendar","Eventos",evS)}
-        ${tile("vr","card","Vale-refeição",vrS)}
+        ${tile(null,"card","Vale-refeição",vrS)}
         ${tile("beneficios","heart","Benefícios",benS)}
         ${tile("documentos","file","Documentos e políticas",docS)}
       </div>
