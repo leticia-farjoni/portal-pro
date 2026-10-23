@@ -72,6 +72,34 @@ const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
   .rh-search select{width:auto}
   .rh-checks{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto;border:1px solid var(--field);border-radius:4px;padding:8px 12px}
   .rh-checks label{font-weight:400;display:flex;gap:8px;align-items:center}
+  .bf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+  .bf-card{display:flex;flex-direction:column;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:10px;overflow:hidden;padding:0;cursor:pointer;color:var(--ink);transition:box-shadow .18s, transform .18s, border-color .18s}
+  .bf-card:hover{border-color:#D5DCE3;box-shadow:0 10px 26px rgba(32,44,51,.12)}
+  .bf-cover{position:relative;aspect-ratio:16/9;width:100%;overflow:hidden;background:var(--disabled)}
+  .bf-cover img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s}
+  .bf-card:hover .bf-cover img{transform:scale(1.04)}
+  .bf-art{width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#fff}
+  .bf-art svg{width:34%;height:auto;max-height:62%;opacity:.95;filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+  .bf-chip{position:absolute;left:12px;top:12px;background:rgba(255,255,255,.94);color:var(--navy);font-size:12px;font-weight:600;padding:3px 10px;border-radius:12px}
+  .bf-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
+  .bf-body h3{margin:0;font-size:18px;color:var(--navy)}
+  .bf-body p{margin:0;font-size:14px;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .bf-body .go{margin-top:auto;padding-top:8px;font-weight:600;font-size:14px;color:var(--brand-2)}
+  .bf-modal{position:fixed;inset:0;z-index:60;background:rgba(20,30,38,.55);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow-y:auto}
+  .bf-panel{background:#fff;border-radius:12px;max-width:760px;width:100%;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.3);position:relative}
+  .bf-panel .bf-cover{aspect-ratio:21/8}
+  .bf-panel .bf-x{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:0;background:rgba(255,255,255,.95);font-size:22px;line-height:1;cursor:pointer;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .bf-panel .in{padding:22px 26px 26px}
+  .bf-panel h2{font-size:24px;color:var(--navy);margin:0 0 6px}
+  .bf-panel dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 26px;margin:18px 0 0}
+  .bf-panel dt{font-size:13px;color:var(--ink-2);font-weight:600}
+  .bf-panel dd{margin:3px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+  .bf-thumb{width:96px;aspect-ratio:16/9;border-radius:6px;overflow:hidden;flex:none;background:var(--disabled)}
+  .bf-thumb img,.bf-thumb .bf-art{width:100%;height:100%;object-fit:cover}
+  .bf-thumb .bf-art svg{width:40%}
+  .bf-imgfield{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .bf-imgfield .bf-thumb{width:200px}
+  @media (prefers-reduced-motion: reduce){.bf-card,.bf-cover img{transition:none}.bf-card:hover .bf-cover img{transform:none}}
   `;
   const st=document.createElement("style"); st.textContent=css; document.head.appendChild(st);
 })();
@@ -98,6 +126,7 @@ function rhTempo(adm){
 }
 function rhErr(e){
   const m=(e&&e.message)||"";
+  if(/image_path/i.test(m)) return "As imagens dos benefícios ainda não estão ativas. Rode o arquivo rh-beneficios-imagem.sql no SQL Editor do Supabase.";
   if(/does not exist|schema cache|Could not find the (table|function)/i.test(m)) return "O Portal do Colaborador ainda não está ativo no banco. Rode o arquivo rh.sql no SQL Editor do Supabase.";
   return dbMessage(e);
 }
@@ -333,26 +362,59 @@ function rhVr(v){
 
 /* --- benefícios --- */
 function rhDocLink(id){ const d=RH.docs.find(x=>x.id===id); return d?`<button class="btn link" data-rhdoc="${h(d.id)}">${h(d.title)}</button>`:""; }
-function rhBenefItem(b){
-  const k="b"+b.id, open=!!RH.open[k];
+const BF_ART = [
+  { k:/odonto|dent/, c:["#0E8A7E","#0A5F57"], i:'<path d="M8 3c-2.8 0-4.5 2.2-4 5.3.4 2.3 1.4 3.4 1.8 5.7.5 3 1 7 2.7 7 1.6 0 1.6-4.6 3.5-4.6s1.9 4.6 3.5 4.6c1.7 0 2.2-4 2.7-7 .4-2.3 1.4-3.4 1.8-5.7C20.5 5.2 18.8 3 16 3c-1.7 0-2.6 1-4 1S9.7 3 8 3z"/>' },
+  { k:/saude|medic|hospital|plano de saude/, c:["#0164AF","#004077"], i:'<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/>' },
+  { k:/seguro|vida|protec/, c:["#5B4BB7","#3B2F86"], i:'<path d="M12 2.5l8 3v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10v-6z"/>' },
+  { k:/aliment|refei|restaur|cesta|mercado/, c:["#E07A1F","#B65A0C"], i:'<path d="M7 2v8a2 2 0 0 1-2 2v10M7 2H5M7 2h2M5 2v6M9 2v6M17 2c-2 0-3 2-3 6v5h3v9"/>' },
+  { k:/transport|onibus|combust|mobil/, c:["#1E7B4A","#145635"], i:'<rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/><circle cx="8" cy="14.5" r="1"/><circle cx="16" cy="14.5" r="1"/>' },
+  { k:/educa|curso|idioma|faculd|bolsa/, c:["#B5308C","#7C1F60"], i:'<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c2 2 10 2 12 0v-5"/>' },
+  { k:/academ|gym|bem.?estar|esport|wellhub|gympass/, c:["#E30613","#A10410"], i:'<path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/>' },
+  { k:/convenio|parceri|descont|clube/, c:["#C28A00","#8A6200"], i:'<path d="M3 12l4-4 4 3 3-3 7 4-5 5-3-2-2 2z"/><path d="M7 8l3-3h4"/>' },
+  { k:/auxilio|creche|bebe|crianca|famil/, c:["#2A8DB8","#1B6182"], i:'<circle cx="12" cy="7" r="3"/><path d="M5 21c.8-4.5 3.6-7 7-7s6.2 2.5 7 7"/>' }
+];
+const BF_DEFAULT = { c:["#202C33","#3A4A55"], i:'<rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M3 13h18M12 9v12M12 9c-1.5-4-6-4.5-6-1.5S10 9 12 9zm0 0c1.5-4 6-4.5 6-1.5S14 9 12 9z"/>' };
+function bfArt(b){
+  const key=normTxt((b.category||"")+" "+(b.name||""));
+  const a=BF_ART.find(x=>x.k.test(key))||BF_DEFAULT;
+  return `<div class="bf-art" style="background:linear-gradient(135deg,${a.c[0]},${a.c[1]})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${a.i}</svg></div>`;
+}
+function bfImgUrl(path){ if(!path) return null; try{ return sb.storage.from("rh-beneficios").getPublicUrl(path).data.publicUrl; }catch(e){ return null; } }
+function bfCover(b, previewUrl){
+  const url = previewUrl || bfImgUrl(b.image_path);
+  return url ? `<img src="${h(url)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'bf-art',style:'background:var(--disabled)'}))">` : bfArt(b);
+}
+function rhBenefCard(b){
+  return `<button type="button" class="bf-card" data-rhbf="${h(b.id)}" aria-haspopup="dialog">
+    <div class="bf-cover">${bfCover(b)}${b.category?`<span class="bf-chip">${h(b.category)}</span>`:""}</div>
+    <div class="bf-body"><h3>${h(b.name)}</h3>${b.description?`<p>${h(b.description)}</p>`:""}<span class="go">Ver detalhes →</span></div></button>`;
+}
+function rhBenefModal(b){
   const links=(b.links||"").split(/\n+/).map(s=>s.trim()).filter(Boolean);
   const docs=(b.doc_ids||[]).map(rhDocLink).filter(Boolean);
-  return `<div class="rh-item"><button class="rh-item-h" data-rhopen="${h(k)}" aria-expanded="${open}"><span><span class="t">${h(b.name)}</span>${b.category?`<span class="s"> · ${h(b.category)}</span>`:""}</span><span aria-hidden="true">${open?"−":"+"}</span></button>
-    ${open?`<div class="rh-item-b">${b.description?`<p style="white-space:pre-wrap">${rhPre(b.description)}</p>`:""}<dl>
-      ${b.eligibility?`<div><dt>Quem tem direito</dt><dd>${rhPre(b.eligibility)}</dd></div>`:""}
-      ${b.usage_info?`<div><dt>Como usar</dt><dd>${rhPre(b.usage_info)}</dd></div>`:""}
-      ${b.conditions?`<div><dt>Valores e condições</dt><dd>${rhPre(b.conditions)}</dd></div>`:""}
-      ${b.contacts?`<div><dt>Contatos para dúvidas</dt><dd>${rhPre(b.contacts)}</dd></div>`:""}
-      ${b.valid_from?`<div><dt>Vigente desde</dt><dd>${h(fmtDate(b.valid_from))}</dd></div>`:""}
-      ${links.length?`<div><dt>Links</dt><dd>${links.map(rhPre).join("<br>")}</dd></div>`:""}
-      ${docs.length?`<div><dt>Documentos relacionados</dt><dd>${docs.join("<br>")}</dd></div>`:""}
-    </dl></div>`:""}</div>`;
+  return `<div class="bf-modal" role="dialog" aria-modal="true" aria-labelledby="bf-title">
+    <div class="bf-panel"><div class="bf-cover">${bfCover(b)}${b.category?`<span class="bf-chip">${h(b.category)}</span>`:""}</div>
+      <button type="button" class="bf-x" data-rhbfx="x" aria-label="Fechar">×</button>
+      <div class="in"><h2 id="bf-title">${h(b.name)}</h2>${b.description?`<p style="white-space:pre-wrap;margin:0">${rhPre(b.description)}</p>`:""}<dl>
+        ${b.eligibility?`<div><dt>Quem tem direito</dt><dd>${rhPre(b.eligibility)}</dd></div>`:""}
+        ${b.usage_info?`<div><dt>Como usar</dt><dd>${rhPre(b.usage_info)}</dd></div>`:""}
+        ${b.conditions?`<div><dt>Valores e condições</dt><dd>${rhPre(b.conditions)}</dd></div>`:""}
+        ${b.contacts?`<div><dt>Contatos para dúvidas</dt><dd>${rhPre(b.contacts)}</dd></div>`:""}
+        ${b.valid_from?`<div><dt>Vigente desde</dt><dd>${h(fmtDate(b.valid_from))}</dd></div>`:""}
+        ${links.length?`<div><dt>Links</dt><dd>${links.map(rhPre).join("<br>")}</dd></div>`:""}
+        ${docs.length?`<div><dt>Documentos relacionados</dt><dd>${docs.join("<br>")}</dd></div>`:""}
+      </dl></div></div></div>`;
 }
 function rhBenef(v){
   const list=RH.beneficios.filter(b=>b.active);
+  const open=RH.bfOpen && list.find(b=>b.id===RH.bfOpen);
   v.innerHTML=`<div class="bar"><h2>Benefícios</h2></div>
-    ${list.length?list.map(rhBenefItem).join(""):`<div class="empty">Os benefícios serão cadastrados pelo RH.</div>`}`;
+    ${list.length?`<div class="bf-grid">${list.map(rhBenefCard).join("")}</div>`:`<div class="empty">Os benefícios serão cadastrados pelo RH.</div>`}
+    ${open?rhBenefModal(open):""}`;
+  if(open){ const x=v.querySelector(".bf-x"); if(x && !v.contains(document.activeElement)) x.focus(); }
 }
+document.addEventListener("keydown", ev=>{ if(ev.key==="Escape" && RH.bfOpen){ RH.bfOpen=null; render(); } });
+document.addEventListener("click", ev=>{ if(RH.bfOpen && ev.target.classList && ev.target.classList.contains("bf-modal")){ RH.bfOpen=null; render(); } });
 
 /* --- documentos --- */
 const rhCurVer = d => RH.versoes.find(x=>x.documento_id===d.id && x.version===d.current_version);
@@ -440,6 +502,11 @@ function rhABenef(){
   const b=RH.bf, pubDocs=RH.docs.filter(d=>d.status==="publicado");
   const form = b ? `<div class="panel"><h3 style="margin-top:0">${b.id?"Editar benefício":"Novo benefício"}</h3><div class="fields">
       ${rhFld("bf","name","Nome","text",b.name)}${rhFld("bf","category","Tipo (ex.: saúde, convênio)","text",b.category)}
+      <div class="field wide"><span class="lbl">Imagem de capa</span><div class="bf-imgfield">
+        <div class="bf-thumb">${bfCover(b, RH.files.bfimgUrl)}</div>
+        <div><input type="file" id="rh-bf-img" accept="image/jpeg,image/png,image/webp" data-rhfile="bfimg" aria-label="Escolher imagem de capa">
+          <span class="hint" style="display:block">Imagem horizontal (ex.: 1200×675), JPG, PNG ou WebP. Sem imagem, o portal usa uma ilustração conforme o tipo do benefício.</span>
+          ${b.image_path||RH.files.bfimg?`<button type="button" class="btn link" data-rhact="bf-noimg">Remover imagem</button>`:""}</div></div></div>
       ${rhFld("bf","description","Descrição","area",b.description)}${rhFld("bf","eligibility","Quem tem direito","area",b.eligibility)}
       ${rhFld("bf","usage_info","Como usar","area",b.usage_info)}${rhFld("bf","conditions","Valores e condições","area",b.conditions)}
       ${rhFld("bf","links","Links para portais externos (um por linha)","area",b.links)}${rhFld("bf","contacts","Contatos para dúvidas","area",b.contacts)}
@@ -448,7 +515,7 @@ function rhABenef(){
       <div class="field wide"><span class="lbl">Documentos relacionados</span>${pubDocs.length?`<div class="rh-checks">${pubDocs.map(d=>`<label><input type="checkbox" data-rhbfdoc="${h(d.id)}" ${(b.doc_ids||[]).includes(d.id)?"checked":""}> ${h(d.title)}</label>`).join("")}</div>`:`<span class="hint">Publique documentos na aba Documentos para relacioná-los aqui.</span>`}</div>
     </div>${stepsHTML(RH.steps.bf||[])}<div class="formfoot"><button class="btn" data-rhact="bf-cancel">Cancelar</button><button class="btn primary" data-rhact="bf-save" ${RH.busy.bf?"disabled":""}>Salvar benefício</button></div></div>`
     : `<div class="formfoot" style="justify-content:flex-start;margin:0 0 16px"><button class="btn primary" data-rhact="bf-new">Novo benefício</button></div>`;
-  return form + (RH.beneficios.length ? RH.beneficios.map(x=>`<div class="rh-item"><div class="rh-item-h" style="cursor:default"><span><span class="t">${h(x.name)}</span><span class="s"> · ${x.active?"visível":"oculto"}</span></span>
+  return form + (RH.beneficios.length ? RH.beneficios.map(x=>`<div class="rh-item"><div class="rh-item-h" style="cursor:default"><span style="display:flex;gap:14px;align-items:center"><span class="bf-thumb">${bfCover(x)}</span><span><span class="t">${h(x.name)}</span><span class="s"> · ${x.active?"visível":"oculto"}</span></span></span>
     <span style="display:flex;gap:8px"><button class="btn" data-rhbfed="${h(x.id)}">Editar</button><button class="btn bad" data-rhbfdel="${h(x.id)}">Excluir</button></span></div></div>`).join("") : `<div class="empty">Nenhum benefício cadastrado.</div>`);
 }
 function rhADocs(){
@@ -567,10 +634,26 @@ async function rhSaveBenef(){
   const t=k=>(b[k]||"").trim()||null;
   const row={ name:b.name.trim(), category:t("category"), description:t("description"), eligibility:t("eligibility"), usage_info:t("usage_info"), conditions:t("conditions"), links:t("links"), contacts:t("contacts"),
     valid_from:b.valid_from||null, sort_order:parseInt(b.sort_order,10)||0, active:String(b.active)!=="false", doc_ids:b.doc_ids||[], updated_at:new Date().toISOString() };
-  const res = b.id ? await sb.from("beneficios").update(row).eq("id",b.id) : await sb.from("beneficios").insert(row);
+  const id = b.id || crypto.randomUUID();
+  row.image_path = b.image_path || null;
+  try{
+    if(RH.files.bfimg){
+      let f=RH.files.bfimg, type=(f.type||"").toLowerCase();
+      if(!/^image\/(jpeg|png|webp)$/.test(type) || f.size>1500000){
+        if(typeof shrinkImage!=="function") throw new Error("Use uma imagem JPG, PNG ou WebP de até 1,5 MB.");
+        f=await shrinkImage(f,1500000); type="image/jpeg";
+      }
+      const path=`${id}/${Date.now().toString(36)}.${type==="image/png"?"png":type==="image/webp"?"webp":"jpg"}`;
+      const up=await sb.storage.from("rh-beneficios").upload(path, f, { contentType:type, upsert:false });
+      if(up.error) throw up.error;
+      row.image_path=path;
+    }
+  }catch(e){ RH.busy.bf=false; RH.steps.bf=[/bucket|not found/i.test(e.message||"")?"O envio de imagens ainda não está ativo. Rode o arquivo rh-beneficios-imagem.sql no Supabase.":(e.message||rhErr(e))]; render(); return; }
+  const res = b.id ? await sb.from("beneficios").update(row).eq("id",b.id) : await sb.from("beneficios").insert({...row, id});
   RH.busy.bf=false;
   if(res.error){ RH.steps.bf=[rhErr(res.error)]; render(); return; }
-  RH.bf=null; RH.steps.bf=[]; await rhAfter("Benefício salvo.");
+  if(RH.files.bfimgUrl) URL.revokeObjectURL(RH.files.bfimgUrl);
+  RH.bf=null; RH.steps.bf=[]; RH.files.bfimg=null; RH.files.bfimgUrl=null; await rhAfter("Benefício salvo.");
 }
 async function rhUploadVersion(docId, file, version, note){
   const ext=(file.name.split(".").pop()||"").toLowerCase();
@@ -621,6 +704,8 @@ RH.click = function(t){
   if(d.rhgo){ RH.tab=d.rhgo; render(); window.scrollTo({top:0}); return true; }
   if(d.rhatab){ RH.atab=d.rhatab; render(); return true; }
   if(d.rhfilt){ RH.filt=d.rhfilt; render(); return true; }
+  if(d.rhbf){ RH.bfOpen=d.rhbf; render(); return true; }
+  if(d.rhbfx){ RH.bfOpen=null; render(); return true; }
   if(d.rhopen){ RH.open[d.rhopen]=!RH.open[d.rhopen]; render(); return true; }
   if(d.rhf){ rhFeriasAct(d.id, d.rhf); return true; }
   if(d.rhdoc){ rhOpenDoc(d.rhdoc, d.ver); return true; }
@@ -648,7 +733,8 @@ RH.click = function(t){
   else if(a==="vr-save"){ rhSaveVr(); }
   else if(a==="rg-save"){ rhSaveRegras(); }
   else if(a==="bf-new"){ RH.bf={active:true, sort_order:0, doc_ids:[]}; RH.steps.bf=[]; render(); }
-  else if(a==="bf-cancel"){ RH.bf=null; render(); }
+  else if(a==="bf-cancel"){ RH.bf=null; RH.files.bfimg=null; RH.files.bfimgUrl=null; render(); }
+  else if(a==="bf-noimg"){ if(RH.bf){ RH.bf.image_path=null; } RH.files.bfimg=null; RH.files.bfimgUrl=null; render(); }
   else if(a==="bf-save"){ rhSaveBenef(); }
   else if(a==="dc-new"){ RH.dc={category:RH_DOC_CATS[0], audience:"todos", status:"publicado"}; RH.files.new=null; RH.steps.dc=[]; render(); }
   else if(a==="dc-cancel"){ RH.dc=null; RH.files.new=null; render(); }
@@ -670,6 +756,7 @@ RH.input = function(t){
 RH.change = function(t){
   const d=t.dataset;
   if(d.rhcat!=null){ RH.cat=t.value; render(); return true; }
+  if(d.rhfile==="bfimg"){ const f=t.files&&t.files[0]||null; if(RH.files.bfimgUrl) URL.revokeObjectURL(RH.files.bfimgUrl); RH.files.bfimg=f; RH.files.bfimgUrl=f?URL.createObjectURL(f):null; render(); return true; }
   if(d.rhfile){ RH.files[d.rhfile]=t.files&&t.files[0]||null; render(); return true; }
   if(d.rhbfdoc){ const s=new Set(RH.bf.doc_ids||[]); t.checked?s.add(d.rhbfdoc):s.delete(d.rhbfdoc); RH.bf.doc_ids=[...s]; return true; }
   if(d.rhin && t.tagName==="SELECT"){ const o={bf:RH.bf, dc:RH.dc}[d.rhin]; if(o) o[d.k]=t.value; return true; }
