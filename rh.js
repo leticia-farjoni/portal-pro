@@ -164,6 +164,7 @@ RH.render = function(v){
   if(!RH.loaded){ v.innerHTML=`<div class="empty">Carregando o Portal do Colaborador…</div>`; return; }
   if(RH.err && !RH.cfg.id){ v.innerHTML=`<div class="bar"><h2>Portal do Colaborador</h2></div><div class="notice err">${h(RH.err)} <button class="btn link" data-action="refresh">Tentar de novo</button></div>`; return; }
   if(RH.tab==="admin" && !RH.isRH()) RH.tab="visao";
+  if(RH.tab==="vr") RH.tab="visao"; // o vale-refeição aparece só na página inicial
   const fn = { visao:rhVisao, horas:rhHoras, ferias:rhFerias, aniversarios:rhAniv, eventos:rhEventos, vr:rhVr, beneficios:rhBenef, documentos:rhDocs, admin:rhAdmin }[RH.tab] || rhVisao;
   fn(v);
 };
@@ -195,7 +196,7 @@ function rhVisao(v){
     <div class="rh-card"><h3>Acesso rápido</h3>
       <button class="btn link" data-rhgo="beneficios" style="justify-content:flex-start">Benefícios (${RH.beneficios.filter(b=>b.active).length})</button>
       <button class="btn link" data-rhgo="documentos" style="justify-content:flex-start">Documentos e políticas (${RH.docs.filter(x=>x.status==="publicado").length})</button>
-      <button class="btn link" data-rhgo="vr" style="justify-content:flex-start">Vale-refeição</button></div>
+</div>
   </div>`;
 }
 
