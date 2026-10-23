@@ -264,6 +264,13 @@ input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#
 .scard .acts{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:8px}
 .scard .big{font-size:32px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--navy)}
 .scard .big.pos{color:var(--ok)} .scard .big.neg{color:var(--bad)}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.pcard{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:20px 22px;cursor:pointer;color:var(--navy);transition:border-color .15s, box-shadow .15s}
+.pcard:hover{border-color:var(--icon);box-shadow:0 6px 18px rgba(32,44,51,.08)}
+.pcard .ico{width:38px;height:38px;color:var(--icon);flex:none}
+.pcard .ico svg{width:100%;height:100%}
+.pcard .pt{font-size:18px;font-weight:700;flex:1}
+.pcard .arr{font-size:20px;color:var(--brand-2)}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
 .tile{display:flex;gap:12px;align-items:flex-start;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:14px 16px;cursor:pointer;color:var(--ink);min-height:80px}
 .tile:hover{border-color:var(--icon)}
@@ -1198,17 +1205,8 @@ function renderHome(v){
   const first=(S.profile.full_name||"").split(" ")[0];
   const today=todayISO(), now=new Date(today+"T12:00:00"), m=now.getMonth()+1;
   const rhOk = hasRH() && RH.loaded && !RH.err;
-  // --- solicitações
-  const finN = isStaff() ? S.requests.filter(pendingFin).length : 0;
-  const tiN = isTI() ? T.list.filter(c=>c.status==="aberto").length : 0;
-  const reemb = `<article class="scard">
-      <div class="top"><span class="ico">${PROCESSES[0].icon}</span><div><h3>Reembolso de despesas</h3><p>Peça o reembolso de despesas de trabalho e acompanhe a análise do financeiro.</p></div></div>
-      <div class="pstatus">${processStatus({id:"reembolsos"})||`<span class="bh-muted small">Nenhuma solicitação em andamento.</span>`}</div>
-      <div class="acts">${homeAction("Pedir reembolso",'data-quick="reembolso"',true)}${homeAction("Minhas solicitações",'data-nav="reembolsos:minhas"')}${finN?homeAction(`Analisar (${finN})`,'data-nav="reembolsos:financeiro"'):""}</div></article>`;
-  const ti = `<article class="scard">
-      <div class="top"><span class="ico">${PROCESSES[1].icon}</span><div><h3>Chamados de TI</h3><p>Peça demandas à equipe de TI, envie materiais e acompanhe a previsão de entrega.</p></div></div>
-      <div class="pstatus">${tiProcessStatus()||`<span class="bh-muted small">Nenhum chamado em andamento.</span>`}</div>
-      <div class="acts">${homeAction("Abrir chamado",'data-quick="chamado"',true)}${homeAction("Meus chamados",'data-nav="ti:meus"')}${tiN?homeAction(`Fila do TI (${tiN})`,'data-nav="ti:fila"'):""}</div></article>`;
+  // --- solicitações: só o nome do processo, com clique para entrar
+  const pcard=(mod,icon,title)=>`<button type="button" class="pcard" data-go="${mod}"><span class="ico">${icon}</span><span class="pt">${h(title)}</span><span class="arr" aria-hidden="true">→</span></button>`;
   // --- RH: banco de horas
   let bh;
   const hb=HB.data;
@@ -1255,8 +1253,8 @@ function renderHome(v){
   const adm = isAdmin() || isRHUser();
   v.innerHTML=`<section class="hello"><h2>Olá, ${h(first)}</h2><p class="muted">O que você precisa hoje?</p></section>
     <section class="hblock" aria-labelledby="h-sol" id="bloco-sol">
-      <div class="hhead"><span class="hicon">${ICONS.inbox}</span><div><h2 id="h-sol">Solicitações</h2><p>Abra e acompanhe pedidos de reembolso e chamados de TI.</p></div></div>
-      <div class="sol-grid">${reemb}${ti}</div>
+      <div class="hhead"><span class="hicon">${ICONS.inbox}</span><div><h2 id="h-sol">Solicitações</h2></div></div>
+      <div class="pgrid">${pcard("reembolsos",PROCESSES[0].icon,"Reembolso de despesas")}${pcard("ti",PROCESSES[1].icon,"Chamados de TI")}</div>
     </section>
     ${hasRH()?`<section class="hblock rh" aria-labelledby="h-rh" id="bloco-rh">
       <div class="hhead"><span class="hicon">${ICONS.people}</span><div><h2 id="h-rh">RH</h2><p>Suas informações e os serviços de Recursos Humanos.</p></div></div>
