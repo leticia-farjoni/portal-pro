@@ -20,8 +20,8 @@ const RH_ACTION = { ferias_rascunho:"salvou um rascunho de férias", ferias_pend
 const RH_HIST = { rascunho:"Salvou como rascunho", pendente:"Enviou para aprovação", aprovada:"Aprovou", rejeitada:"Rejeitou", cancelada:"Cancelou" };
 const RH_AUD = { todos:"Todos os colaboradores", rh:"Somente RH", admin:"Somente administração" };
 const RH_DOC_ST = { rascunho:"Rascunho", publicado:"Publicado", arquivado:"Arquivado" };
-const RH_TABS = [["visao","Visão geral"],["horas","Meu banco de horas"],["ferias","Férias"],["aniversarios","Aniversariantes"],["eventos","Calendário de eventos"],["vr","Vale-refeição"],["beneficios","Benefícios"],["documentos","Documentos e políticas"]];
-const RH_ADMIN_TABS = [["a-ferias","Férias"],["a-colab","Colaboradores"],["a-eventos","Eventos"],["a-vr","Vale-refeição"],["a-benef","Benefícios"],["a-docs","Documentos"],["a-regras","Regras de férias"]];
+const RH_TABS = [["visao","Visão geral"],["horas","Meu banco de horas"],["ferias","Férias"],["aniversarios","Aniversariantes"],["eventos","Calendário de eventos"],["vr","VR e VT"],["beneficios","Benefícios"],["documentos","Documentos e políticas"]];
+const RH_ADMIN_TABS = [["a-ferias","Férias"],["a-coletivas","Férias coletivas"],["a-colab","Colaboradores"],["a-eventos","Eventos"],["a-vr","VR e VT"],["a-benef","Benefícios"],["a-docs","Documentos"],["a-regras","Regras de férias"]];
 const RH_MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18.5 14.5c1.4.8 2.3 2.4 2.5 4.5"/></svg>';
 
@@ -65,6 +65,11 @@ const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
   .rh-table td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:middle}
   .rh-table input{min-height:34px;padding:5px 8px;font-size:14px}
   .rh-month{display:flex;align-items:center;gap:10px}
+  .rh-card.coletivas{margin:0 0 16px;border-left:4px solid var(--red)}
+  .vrvt .vrhead{display:flex;align-items:center;gap:12px}
+  .vrvt .vrico{width:40px;height:40px;border-radius:10px;background:var(--carbon-soft);color:var(--brand);display:flex;align-items:center;justify-content:center}
+  .vrvt .vrico svg{width:24px;height:24px}
+  .vrvt .vrun{font-size:15px;font-weight:500;color:var(--ink-2)}
   .rh-pl{display:flex;align-items:center;gap:12px;min-width:0}
   .rh-av{width:48px;height:48px;border-radius:50%;flex:none;object-fit:cover;background:var(--carbon-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;overflow:hidden}
   .rh-av.sm{width:36px;height:36px;font-size:13px}
@@ -115,7 +120,7 @@ const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 })();
 
 const RH = {
-  tab:"visao", atab:"a-ferias", loaded:false, err:null,
+  tab:"visao", atab:"a-ferias", coletivas:[], cl:null, loaded:false, err:null,
   cfg:{}, ferias:[], aniv:[], eventos:[], beneficios:[], docs:[], versoes:[], colabs:[], people:[],
   form:{}, ferr:{}, busy:{}, steps:{}, open:{}, note:{}, q:"", cat:"", ym:null, showPast:false, filt:"pendente",
   ev:null, bf:null, dc:null, nv:{}, vr:null, rg:null, ce:{}, files:{}
@@ -137,6 +142,7 @@ function rhTempo(adm){
 function rhErr(e){
   const m=(e&&e.message)||"";
   if(/photo_path/i.test(m)) return "As fotos ainda não estão ativas. Rode o arquivo atualizacao-fotos-financeiro.sql no SQL Editor do Supabase.";
+  if(/vt_valor|vt_periodicidade|vt_criterios|vt_regras|vt_observacoes|ferias_coletivas|portal_favoritos/i.test(m)) return "Esta função ainda não está ativa no banco. Rode o arquivo atualizacao-inicio-favoritos.sql no SQL Editor do Supabase.";
   if(/image_path/i.test(m)) return "As imagens dos benefícios ainda não estão ativas. Rode o arquivo rh-beneficios-imagem.sql no SQL Editor do Supabase.";
   if(/does not exist|schema cache|Could not find the (table|function)/i.test(m)) return "O Portal do Colaborador ainda não está ativo no banco. Rode o arquivo rh.sql no SQL Editor do Supabase.";
   return dbMessage(e);
@@ -167,6 +173,7 @@ RH.load = async function(){
     run(async()=>{ const {data,error}=await sb.from("rh_settings").select("*").eq("id",1).maybeSingle(); if(error) throw error; RH.cfg=data||{}; }),
     run(async()=>{ const {data,error}=await sb.from("ferias").select("*, requester:profiles!ferias_requester_id_fkey(full_name,email)").order("created_at",{ascending:false}); if(error) throw error; RH.ferias=data||[]; }),
     run(async()=>{ const {data,error}=await sb.rpc("rh_aniversarios"); if(error) throw error; RH.aniv=data||[]; }),
+    (async()=>{ try{ const {data,error}=await sb.from("ferias_coletivas").select("*").order("start_date",{ascending:true}); RH.coletivas = error ? [] : (data||[]); RH.coletivasOk=!error; }catch(e){ RH.coletivas=[]; RH.coletivasOk=false; } })(),
     run(async()=>{ const {data,error}=await sb.from("eventos").select("*").order("event_date",{ascending:true}); if(error) throw error; RH.eventos=data||[]; }),
     run(async()=>{ const {data,error}=await sb.from("beneficios").select("*").order("sort_order",{ascending:true}).order("name",{ascending:true}); if(error) throw error; RH.beneficios=data||[]; }),
     run(async()=>{ const {data,error}=await sb.from("documentos").select("*").order("title",{ascending:true}); if(error) throw error; RH.docs=data||[]; }),
@@ -217,7 +224,6 @@ RH.render = function(v){
   if(!RH.loaded){ v.innerHTML=`<div class="empty">Carregando o Portal do Colaborador…</div>`; return; }
   if(RH.err && !RH.cfg.id){ v.innerHTML=`<div class="bar"><h2>Portal do Colaborador</h2></div><div class="notice err">${h(RH.err)} <button class="btn link" data-action="refresh">Tentar de novo</button></div>`; return; }
   if(RH.tab==="admin" && !RH.isRH()) RH.tab="visao";
-  if(RH.tab==="vr") RH.tab="visao"; // o vale-refeição aparece só na página inicial
   const fn = { visao:rhVisao, horas:rhHoras, ferias:rhFerias, aniversarios:rhAniv, eventos:rhEventos, vr:rhVr, beneficios:rhBenef, documentos:rhDocs, admin:rhAdmin }[RH.tab] || rhVisao;
   fn(v);
 };
@@ -302,12 +308,18 @@ function rhFeriasItem(f, admin){
       ${f.decision_note?`<div><dt>${f.status==="rejeitada"?"Justificativa da rejeição":"Observação do RH"}</dt><dd>${h(f.decision_note)}</dd></div>`:""}
     </dl>${rhFeriasHist(f)}${act?`<div class="actions">${act}${stepsHTML(RH.steps[k]||[])}</div>`:""}</div>`:""}</div>`;
 }
+function rhColetivasProx(){ const t=todayISO(); return (RH.coletivas||[]).filter(c=>c.end_date>=t); }
+function rhColetivasBox(){
+  const l=rhColetivasProx(); if(!l.length) return "";
+  return `<div class="rh-card coletivas"><h3>Férias coletivas</h3>${l.map(c=>`<div class="rh-person"><span><span class="who2">${h(c.titulo)}</span>${c.observacao?`<br><span class="det">${h(c.observacao)}</span>`:""}</span><span class="dt">${h(fmtDate(c.start_date))} a ${h(fmtDate(c.end_date))}</span></div>`).join("")}</div>`;
+}
 function rhFerias(v){
   const f=RH.form, e=RH.ferr, busy=RH.busy.form?"disabled":"", regras=rhRegrasTxt();
   const mine=RH.ferias.filter(x=>x.requester_id===myId());
   const er=k=>e[k]?`<span class="err">${h(e[k])}</span>`:"";
   const end=rhEnd(f);
   v.innerHTML=`<div class="bar"><h2>Férias</h2>${f.open?"":`<button class="btn primary" data-rhact="ferias-new">Solicitar férias</button>`}</div>
+    ${rhColetivasBox()}
     <div class="notice" style="border-left-color:var(--brand-2)">${regras.length?`<strong>Regras definidas pelo RH:</strong> ${h(regras.join("; "))}.`:`O RH ainda não cadastrou regras de férias no portal. Confirme as condições com o RH antes de pedir.`}
       ${RH.cfg.ferias_observacao?`<div style="margin-top:6px;white-space:pre-wrap">${rhPre(RH.cfg.ferias_observacao)}</div>`:""}</div>
     ${f.open?`<form class="sheet" id="rh-ferias-form" novalidate>
@@ -371,18 +383,20 @@ function rhEventos(v){
 
 /* --- VR --- */
 function rhVr(v){
-  const c=RH.cfg, has = c.vr_valor!=null || c.vr_criterios || c.vr_regras;
-  v.innerHTML=`<div class="bar"><h2>Vale-refeição</h2></div>
-    ${has?`<div class="rh-card" style="max-width:720px">
-      ${c.vr_valor!=null?`<div><div class="small muted">Valor do benefício</div><div class="rh-vr">${h(brl(c.vr_valor))}</div>${c.vr_periodicidade?`<div class="muted">${h(c.vr_periodicidade)}</div>`:""}</div>`:""}
-      <div class="rh-item-b" style="padding:0;border:0"><dl>
-        ${c.vr_criterios?`<div><dt>Critérios de concessão</dt><dd>${rhPre(c.vr_criterios)}</dd></div>`:""}
-        ${c.vr_regras?`<div><dt>Regras de utilização</dt><dd>${rhPre(c.vr_regras)}</dd></div>`:""}
-        ${c.vr_vigencia?`<div><dt>Vigente desde</dt><dd>${h(fmtDate(c.vr_vigencia))}</dd></div>`:""}
-        ${c.vr_observacoes?`<div><dt>Observações</dt><dd>${rhPre(c.vr_observacoes)}</dd></div>`:""}
-      </dl></div>
-      <p class="small muted" style="margin:0">A regra vale para todos os colaboradores.</p></div>`
-    :`<div class="empty">As informações do vale-refeição serão disponibilizadas pelo RH.</div>`}`;
+  const c=RH.cfg;
+  const hasVR = c.vr_valor!=null || c.vr_criterios || c.vr_regras || c.vr_observacoes;
+  const hasVT = c.vt_valor!=null || c.vt_criterios || c.vt_regras || c.vt_observacoes || c.vt_periodicidade;
+  const bloco=(titulo, icone, has, valor, unidade, campos, vazio)=>`<div class="rh-card vrvt"><div class="vrhead"><span class="vrico">${icone}</span><h3>${titulo}</h3></div>
+    ${has?`${valor!=null?`<div><div class="small muted">Valor</div><div class="rh-vr">${h(brl(valor))}${unidade?` <span class="vrun">${h(unidade)}</span>`:""}</div></div>`:""}
+      <div class="rh-item-b" style="padding:0;border:0"><dl>${campos.filter(x=>x[1]).map(([l,t])=>`<div><dt>${l}</dt><dd>${l==="Vigente desde"?h(fmtDate(t)):rhPre(t)}</dd></div>`).join("")}</dl></div>`
+    :`<p class="muted">${vazio}</p>`}</div>`;
+  const icVR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 2v8a2 2 0 0 1-2 2v10M7 2H5M7 2h2M5 2v6M9 2v6M17 2c-2 0-3 2-3 6v5h3v9"/></svg>';
+  const icVT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="15" rx="3"/><path d="M4 11h16M8 21v-3M16 21v-3"/><circle cx="8" cy="14.5" r="1"/><circle cx="16" cy="14.5" r="1"/></svg>';
+  v.innerHTML=`<div class="bar"><h2>VR e VT</h2></div>
+    <div class="rh-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
+      ${bloco("Vale-refeição", icVR, hasVR, c.vr_valor, "por dia", [["Critérios de concessão",c.vr_criterios],["Regras de utilização",c.vr_regras],["Vigente desde",c.vr_vigencia],["Observações",c.vr_observacoes]], "As informações do vale-refeição serão disponibilizadas pelo RH.")}
+      ${bloco("Vale-transporte", icVT, hasVT, c.vt_valor, c.vt_periodicidade||"", [["Critérios de concessão",c.vt_criterios],["Regras de utilização",c.vt_regras],["Observações",c.vt_observacoes]], "As informações do vale-transporte serão disponibilizadas pelo RH.")}
+    </div>`;
 }
 
 /* --- benefícios --- */
@@ -471,8 +485,33 @@ function rhDocs(v){
 /* ---------- área do RH ---------- */
 function rhAdmin(v){
   const sub=`<div class="rh-sub" role="tablist">${RH_ADMIN_TABS.map(([k,l])=>`<button data-rhatab="${k}" ${RH.atab===k?'aria-current="page"':""}>${h(l)}${k==="a-ferias"&&RH.ferias.filter(f=>f.status==="pendente").length?` <span class="count">${RH.ferias.filter(f=>f.status==="pendente").length}</span>`:""}</button>`).join("")}</div>`;
-  const body = { "a-ferias":rhAFerias, "a-colab":rhAColab, "a-eventos":rhAEventos, "a-vr":rhAVr, "a-benef":rhABenef, "a-docs":rhADocs, "a-regras":rhARegras }[RH.atab]();
+  const body = { "a-coletivas":rhAColetivas, "a-ferias":rhAFerias, "a-colab":rhAColab, "a-eventos":rhAEventos, "a-vr":rhAVr, "a-benef":rhABenef, "a-docs":rhADocs, "a-regras":rhARegras }[RH.atab]();
   preserveFocus(()=>{ v.innerHTML=`<div class="bar"><h2>Gestão do RH</h2><button class="btn" data-action="refresh">Atualizar</button></div>${sub}${body}`; });
+}
+function rhAColetivas(){
+  if(!RH.coletivasOk) return `<div class="notice">As férias coletivas ainda não estão ativas no banco. Rode o arquivo atualizacao-inicio-favoritos.sql no SQL Editor do Supabase.</div>`;
+  const c=RH.cl, today=todayISO();
+  const form = c ? `<div class="panel"><h3 style="margin-top:0">${c.id?"Editar férias coletivas":"Novas férias coletivas"}</h3><div class="fields">
+      ${rhFld("cl","titulo","Título (ex.: Recesso de fim de ano)","text",c.titulo)}<div></div>
+      ${rhFld("cl","start_date","Início","date",c.start_date)}${rhFld("cl","end_date","Fim","date",c.end_date)}
+      ${rhFld("cl","observacao","Observação (opcional)","area",c.observacao)}</div>
+      ${stepsHTML(RH.steps.cl||[])}<div class="formfoot"><button class="btn" data-rhact="cl-cancel">Cancelar</button><button class="btn primary" data-rhact="cl-save" ${RH.busy.cl?"disabled":""}>Salvar</button></div></div>`
+    : `<div class="formfoot" style="justify-content:flex-start;margin:0 0 16px"><button class="btn primary" data-rhact="cl-new">Cadastrar férias coletivas</button></div>`;
+  const list=[...RH.coletivas].sort((a,b)=>b.start_date.localeCompare(a.start_date));
+  return `<p class="muted small" style="margin-top:0">As férias coletivas aparecem para todos os colaboradores na página Férias e na tela inicial.</p>` + form +
+    (list.length ? list.map(x=>`<div class="rh-item"><div class="rh-item-h" style="cursor:default"><span><span class="t">${h(x.titulo)}</span><span class="s"> · ${h(fmtDate(x.start_date))} a ${h(fmtDate(x.end_date))}${x.end_date<today?" (encerradas)":""}</span></span>
+      <span style="display:flex;gap:8px"><button class="btn" data-rhcled="${h(x.id)}">Editar</button><button class="btn bad" data-rhcldel="${h(x.id)}">Excluir</button></span></div></div>`).join("") : `<div class="empty">Nenhuma férias coletivas cadastrada.</div>`);
+}
+async function rhSaveColetiva(){
+  const c=RH.cl;
+  if(!(c.titulo||"").trim() || !c.start_date || !c.end_date){ RH.steps.cl=["Informe título, início e fim."]; render(); return; }
+  if(c.end_date<c.start_date){ RH.steps.cl=["O fim não pode ser antes do início."]; render(); return; }
+  RH.busy.cl=true; render();
+  const row={ titulo:c.titulo.trim(), start_date:c.start_date, end_date:c.end_date, observacao:(c.observacao||"").trim()||null, updated_at:new Date().toISOString() };
+  const res = c.id ? await sb.from("ferias_coletivas").update(row).eq("id",c.id) : await sb.from("ferias_coletivas").insert(row);
+  RH.busy.cl=false;
+  if(res.error){ RH.steps.cl=[rhErr(res.error)]; render(); return; }
+  RH.cl=null; RH.steps.cl=[]; await rhAfter("Férias coletivas salvas.");
 }
 function rhAFerias(){
   const fl=RH.filt, list=RH.ferias.filter(f=>fl==="todas" ? f.status!=="rascunho" : f.status===fl);
@@ -520,12 +559,16 @@ function rhAEventos(){
     <span style="display:flex;gap:8px"><button class="btn" data-rheved="${h(x.id)}">Editar</button><button class="btn bad" data-rhevdel="${h(x.id)}">Excluir</button></span></div></div>`).join("") : `<div class="empty">Nenhum evento cadastrado.</div>`);
 }
 function rhAVr(){
-  const c=RH.vr || (RH.vr={ vr_valor: RH.cfg.vr_valor!=null?String(RH.cfg.vr_valor).replace(".",","):"", vr_periodicidade:RH.cfg.vr_periodicidade||"", vr_criterios:RH.cfg.vr_criterios||"", vr_regras:RH.cfg.vr_regras||"", vr_vigencia:RH.cfg.vr_vigencia||"", vr_observacoes:RH.cfg.vr_observacoes||"" });
+  const c=RH.vr || (RH.vr={ vr_valor: RH.cfg.vr_valor!=null?String(RH.cfg.vr_valor).replace(".",","):"", vr_periodicidade:RH.cfg.vr_periodicidade||"", vr_criterios:RH.cfg.vr_criterios||"", vr_regras:RH.cfg.vr_regras||"", vr_vigencia:RH.cfg.vr_vigencia||"", vr_observacoes:RH.cfg.vr_observacoes||"",
+    vt_valor: RH.cfg.vt_valor!=null?String(RH.cfg.vt_valor).replace(".",","):"", vt_periodicidade:RH.cfg.vt_periodicidade||"", vt_criterios:RH.cfg.vt_criterios||"", vt_regras:RH.cfg.vt_regras||"", vt_observacoes:RH.cfg.vt_observacoes||"" });
   return `<div class="panel"><p class="muted small" style="margin-top:0">A mesma regra vale para todos os colaboradores. Deixe o valor vazio enquanto não houver informação oficial.</p><div class="fields">
     ${rhFld("vr","vr_valor","Valor por dia (R$)","text",c.vr_valor,'inputmode="decimal" placeholder="0,00"')}${rhFld("vr","vr_periodicidade","Periodicidade","text",c.vr_periodicidade,'placeholder="Ex.: mensal, por dia útil trabalhado"')}
     ${rhFld("vr","vr_vigencia","Vigente desde","date",c.vr_vigencia)}<div></div>
     ${rhFld("vr","vr_criterios","Critérios de concessão","area",c.vr_criterios)}${rhFld("vr","vr_regras","Regras de utilização","area",c.vr_regras)}${rhFld("vr","vr_observacoes","Observações","area",c.vr_observacoes)}</div>
-    ${stepsHTML(RH.steps.vr||[])}<div class="formfoot"><button class="btn primary" data-rhact="vr-save" ${RH.busy.vr?"disabled":""}>Salvar vale-refeição</button></div></div>`;
+    <h3>Vale-transporte</h3><div class="fields">
+    ${rhFld("vr","vt_valor","Valor do VT (R$, opcional)","text",c.vt_valor,'inputmode="decimal" placeholder="0,00"')}${rhFld("vr","vt_periodicidade","Unidade ou periodicidade (ex.: por dia, por mês)","text",c.vt_periodicidade)}
+    ${rhFld("vr","vt_criterios","Critérios de concessão","area",c.vt_criterios)}${rhFld("vr","vt_regras","Regras de utilização","area",c.vt_regras)}${rhFld("vr","vt_observacoes","Observações","area",c.vt_observacoes)}</div>
+    ${stepsHTML(RH.steps.vr||[])}<div class="formfoot"><button class="btn primary" data-rhact="vr-save" ${RH.busy.vr?"disabled":""}>Salvar VR e VT</button></div></div>`;
 }
 function rhABenef(){
   const b=RH.bf, pubDocs=RH.docs.filter(d=>d.status==="publicado");
@@ -655,10 +698,14 @@ async function rhSaveVr(){
   const c=RH.vr, val=String(c.vr_valor||"").trim(), n=parseMoney(val);
   if(val && !(n>=0)){ RH.steps.vr=["Valor inválido. Use o formato 0,00."]; render(); return; }
   RH.busy.vr=true; render();
-  const { error } = await sb.from("rh_settings").update({ vr_valor: val?n:null, vr_periodicidade:c.vr_periodicidade.trim()||null, vr_criterios:c.vr_criterios.trim()||null, vr_regras:c.vr_regras.trim()||null, vr_vigencia:c.vr_vigencia||null, vr_observacoes:c.vr_observacoes.trim()||null, updated_at:new Date().toISOString() }).eq("id",1);
+  const vtv=String(c.vt_valor||"").trim(), vtn=parseMoney(vtv);
+  if(vtv && !(vtn>=0)){ RH.busy.vr=false; RH.steps.vr=["Valor do VT inválido. Use o formato 0,00."]; render(); return; }
+  const tr=k=>String(c[k]||"").trim()||null;
+  const { error } = await sb.from("rh_settings").update({ vr_valor: val?n:null, vr_periodicidade:tr("vr_periodicidade"), vr_criterios:tr("vr_criterios"), vr_regras:tr("vr_regras"), vr_vigencia:c.vr_vigencia||null, vr_observacoes:tr("vr_observacoes"),
+    vt_valor: vtv?vtn:null, vt_periodicidade:tr("vt_periodicidade"), vt_criterios:tr("vt_criterios"), vt_regras:tr("vt_regras"), vt_observacoes:tr("vt_observacoes"), updated_at:new Date().toISOString() }).eq("id",1);
   RH.busy.vr=false;
   if(error){ RH.steps.vr=[rhErr(error)]; render(); return; }
-  RH.vr=null; RH.steps.vr=[]; await rhAfter("Vale-refeição atualizado.");
+  RH.vr=null; RH.steps.vr=[]; await rhAfter("VR e VT atualizados.");
 }
 async function rhSaveRegras(){
   const r=RH.rg, num=v=>{ const s=String(v??"").trim(); return s===""?null:parseInt(s,10); };
@@ -756,6 +803,8 @@ RH.click = function(t){
   if(d.rhmonth!=null){ const n=Number(d.rhmonth); if(n===0) RH.ym=null; else { let {y,m}=RH.ym; m+=n; if(m<1){m=12;y--;} if(m>12){m=1;y++;} RH.ym={y,m}; } render(); return true; }
   if(d.rhfotox){ const uid=d.rhfotox, fk="foto:"+uid; if(RH.ce[uid]) RH.ce[uid].photo_path=null; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); delete RH.files[fk]; delete RH.files[fk+"_url"]; render(); return true; }
   if(d.rhcedit){ const c=RH.colabs.find(x=>x.user_id===d.rhcedit)||{}; RH.ce[d.rhcedit]={photo_path:c.photo_path||null, birth_date:c.birth_date||"", admission_date:c.admission_date||"", department:c.department||""}; render(); return true; }
+  if(d.rhcled){ RH.cl={...RH.coletivas.find(x=>x.id===d.rhcled)}; RH.steps.cl=[]; render(); window.scrollTo({top:0}); return true; }
+  if(d.rhcldel){ const c=RH.coletivas.find(x=>x.id===d.rhcldel); if(c && confirm(`Excluir “${c.titulo}”?`)) sb.from("ferias_coletivas").delete().eq("id",c.id).then(r=>r.error?(S.flash={kind:"warn",text:rhErr(r.error)},render()):rhAfter("Férias coletivas excluídas.")); return true; }
   if(d.rhcno){ const fk="foto:"+d.rhcno; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); delete RH.files[fk]; delete RH.files[fk+"_url"]; delete RH.ce[d.rhcno]; render(); return true; }
   if(d.rhcsave){ rhSaveColab(d.rhcsave); return true; }
   if(d.rheved){ RH.ev={...RH.eventos.find(x=>x.id===d.rheved)}; RH.steps.ev=[]; render(); window.scrollTo({top:0}); return true; }
@@ -772,6 +821,9 @@ RH.click = function(t){
   else if(a==="ferias-cancel"){ RH.form={}; RH.ferr={}; render(); }
   else if(a==="ferias-draft"){ rhSaveFerias("rascunho"); }
   else if(a==="past"){ RH.showPast=!RH.showPast; render(); }
+  else if(a==="cl-new"){ RH.cl={}; RH.steps.cl=[]; render(); }
+  else if(a==="cl-cancel"){ RH.cl=null; render(); }
+  else if(a==="cl-save"){ rhSaveColetiva(); }
   else if(a==="ev-new"){ RH.ev={}; RH.steps.ev=[]; render(); }
   else if(a==="ev-cancel"){ RH.ev=null; render(); }
   else if(a==="ev-save"){ rhSaveEvento(); }
@@ -794,7 +846,7 @@ RH.input = function(t){
   if(d.rhnote){ RH.note[d.rhnote]=t.value; return true; }
   if(d.rhq!=null){ RH.q=t.value; render(); return true; }
   if(d.rhce){ RH.ce[d.rhce][d.k]=t.value; return true; }
-  if(d.rhin){ const o={ev:RH.ev, vr:RH.vr, rg:RH.rg, bf:RH.bf, dc:RH.dc}[d.rhin]; if(o) o[d.k]=t.value; return true; }
+  if(d.rhin){ const o={ev:RH.ev, vr:RH.vr, rg:RH.rg, bf:RH.bf, dc:RH.dc, cl:RH.cl}[d.rhin]; if(o) o[d.k]=t.value; return true; }
   if(d.rhnvnote){ RH.nv[d.rhnvnote].note=t.value; return true; }
   return false;
 };
