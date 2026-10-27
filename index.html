@@ -286,6 +286,36 @@ input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#
 .scard .acts{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:auto;padding-top:8px}
 .scard .big{font-size:32px;font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--navy)}
 .scard .big.pos{color:var(--ok)} .scard .big.neg{color:var(--bad)}
+.solwrap{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:22px;align-items:start}
+.subh{margin:0 0 10px;font-size:15px;color:var(--ink-2);font-weight:600}
+.pcard{position:relative}
+.pcard .pmain{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:none;border:0;padding:0;cursor:pointer;color:var(--navy)}
+.pcard .favstar{margin-left:4px}
+.favstar{border:0;background:none;color:var(--warn);font-size:22px;line-height:1;cursor:pointer;padding:4px 6px;border-radius:6px;flex:none}
+.favstar:not(.on){color:var(--ink-3)}
+.favstar:hover{background:var(--warn-soft);color:var(--warn)}
+h2 .favstar{font-size:24px;margin-left:6px}
+.favadd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.chipfav{border:1px dashed var(--field);background:#fff;border-radius:16px;padding:5px 12px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+.chipfav:hover{border-color:var(--warn);color:var(--warn)}
+.recents{display:flex;flex-direction:column;gap:10px}
+.recent{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%;background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:12px 14px;cursor:pointer;color:var(--ink)}
+.recent:hover{border-color:var(--icon)}
+.recent .rtop{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.recent .rcode{font-size:12px;color:var(--ink-2);font-weight:600}
+.recent .rtitle{font-weight:600;color:var(--navy);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rhrow{display:grid;grid-template-columns:minmax(220px,1fr) minmax(0,2.2fr);gap:18px}
+.scard.compact{padding:18px}
+.scard.compact .big{font-size:28px}
+.acols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.acol h4{margin:0 0 8px;font-size:13px;color:var(--ink-2);font-weight:600;letter-spacing:.02em}
+.arow{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--rule)}
+.arow:last-child{border-bottom:0}
+.arow .an{flex:1;min-width:0;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis}
+.arow .an small{display:block;font-weight:400;color:var(--ink-2);font-size:12px}
+.hdate{font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap}
+.hdate.today{color:#fff;background:var(--red);padding:1px 8px;border-radius:10px}
+@media (max-width:760px){.solwrap,.rhrow,.acols{grid-template-columns:1fr}}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .pcard{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:20px 22px;cursor:pointer;color:var(--navy);transition:border-color .15s, box-shadow .15s}
 .pcard:hover{border-color:var(--icon);box-shadow:0 6px 18px rgba(32,44,51,.08)}
@@ -377,8 +407,8 @@ input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="rh.js?v=2026-10-27"></script>
-<script src="banco-horas.js?v=2026-10-27"></script>
+<script src="rh.js?v=2026-10-27b"></script>
+<script src="banco-horas.js?v=2026-10-27b"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -717,7 +747,7 @@ async function loadReqAreas(){
 async function loadAll(){
   await loadProfile();
   if(S.profile && S.profile.status==="aprovado"){
-    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs(), typeof RH!=="undefined"?RH.load():null, loadHB(), loadReqAreas()]);
+    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs(), typeof RH!=="undefined"?RH.load():null, loadHB(), loadReqAreas(), loadFavs()]);
   }
   render();
 }
@@ -935,7 +965,7 @@ function renderHeader(){
 }
 function approved(){ return S.session && S.profile && S.profile.status==="aprovado" && S.authMode!=="recovery"; }
 const pendingFin = r => r.status==="aguardando_financeiro";
-const RH_MENU = [["horas","Meu banco de horas","clock"],["ferias","Férias","sun"],["aniversarios","Aniversariantes","cake"],["eventos","Eventos","calendar"],["beneficios","Benefícios","heart"],["documentos","Documentos e políticas","file"]];
+const RH_MENU = [["horas","Meu banco de horas","clock"],["ferias","Férias","sun"],["aniversarios","Aniversariantes","cake"],["eventos","Eventos","calendar"],["vr","VR e VT","card"],["beneficios","Benefícios","heart"],["documentos","Documentos e políticas","file"]];
 function navTabs(){
   const rTabs=[["minhas","Minhas solicitações",0]];
   if(isStaff()) rTabs.push(["financeiro","Análise do financeiro",S.requests.filter(r=>pendingFin(r)||r.status==="aprovado").length]);
@@ -996,7 +1026,10 @@ function closeMenu(){ $("#side").classList.remove("open"); $("#scrim").classList
 function decorateTitle(){
   if(!approved() || S.module==="home") return;
   const h2=document.querySelector("#listslot > .bar h2, #ti-listslot > .bar h2, #view > .bar h2");
-  if(h2 && !h2.querySelector(".back")) h2.insertAdjacentHTML("afterbegin", `<button class="back" data-go="home" aria-label="Voltar ao início">${ICONS.back}</button>`);
+  if(!h2) return;
+  if(!h2.querySelector(".back")) h2.insertAdjacentHTML("afterbegin", `<button class="back" data-go="home" aria-label="Voltar ao início">${ICONS.back}</button>`);
+  const old=h2.querySelector(".favstar"); if(old) old.remove();
+  const fl=flowOfPage(); if(fl) h2.insertAdjacentHTML("beforeend", favStar(fl));
 }
 function renderBanner(){
   let out="";
@@ -1275,6 +1308,42 @@ function processStatus(p){
   return parts.join("");
 }
 const HB = { data:null, loading:false };
+const FLOWS = [
+  { id:"reembolsos", title:"Reembolso de despesas", icon:()=>PROCESSES[0].icon, attrs:'data-go="reembolsos"' },
+  { id:"ti", title:"Chamados de TI", icon:()=>PROCESSES[1].icon, attrs:'data-go="ti"' },
+  { id:"ferias", title:"Férias", icon:()=>ICONS.sun, attrs:'data-nav="rh:ferias"', rh:true },
+  { id:"bh", title:"Banco de horas", icon:()=>ICONS.clock, attrs:'data-nav="rh:horas"', rh:true }
+];
+const FAV = { set:new Set(), db:true, loaded:false };
+const favKey = () => "portal-favs-"+(myId()||"");
+async function loadFavs(){
+  try{
+    const { data, error } = await sb.from("portal_favoritos").select("fluxo");
+    if(error) throw error;
+    FAV.set=new Set((data||[]).map(x=>x.fluxo)); FAV.db=true;
+  }catch(e){
+    FAV.db=false; try{ FAV.set=new Set(JSON.parse(localStorage.getItem(favKey())||"[]")); }catch(_){ FAV.set=new Set(); }
+  }
+  FAV.loaded=true;
+}
+async function toggleFav(id){
+  const on=!FAV.set.has(id);
+  if(on) FAV.set.add(id); else FAV.set.delete(id);
+  render();
+  if(FAV.db){
+    const r = on ? await sb.from("portal_favoritos").insert({fluxo:id}) : await sb.from("portal_favoritos").delete().eq("fluxo",id);
+    if(r.error && !/duplicate/i.test(r.error.message||"")){ FAV.db=false; }
+  }
+  if(!FAV.db){ try{ localStorage.setItem(favKey(), JSON.stringify([...FAV.set])); }catch(_){} }
+}
+function flowOfPage(){
+  if(S.module==="reembolsos") return "reembolsos";
+  if(S.module==="ti") return "ti";
+  if(S.module==="rh" && hasRH()) return RH.tab==="ferias" ? "ferias" : RH.tab==="horas" ? "bh" : null;
+  return null;
+}
+const favStar = id => { const on=FAV.set.has(id), f=FLOWS.find(x=>x.id===id);
+  return `<button type="button" class="favstar${on?" on":""}" data-fav="${id}" aria-pressed="${on}" aria-label="${on?"Remover":"Adicionar"} ${h(f?f.title:"")} ${on?"dos":"aos"} favoritos" title="${on?"Remover dos favoritos":"Adicionar aos favoritos"}">${on?"★":"☆"}</button>`; };
 async function loadHB(){
   if(!window.RH_BANCO_HORAS || !window.RH_BANCO_HORAS.resumo || !myId()) return;
   HB.loading=true; HB.data=await window.RH_BANCO_HORAS.resumo(sb, myId()); HB.loading=false;
@@ -1284,46 +1353,64 @@ function renderHome(v){
   const first=(S.profile.full_name||"").split(" ")[0];
   const today=todayISO(), now=new Date(today+"T12:00:00"), m=now.getMonth()+1;
   const rhOk = hasRH() && RH.loaded && !RH.err;
-  // --- solicitações: só o nome do processo, com clique para entrar
-  const pcard=(mod,icon,title)=>`<button type="button" class="pcard" data-go="${mod}"><span class="ico">${icon}</span><span class="pt">${h(title)}</span><span class="arr" aria-hidden="true">→</span></button>`;
-  // --- RH: banco de horas
-  let bh;
+  // --- solicitações: favoritos + 2 últimas solicitações
+  const flows = FLOWS.filter(f=>!f.rh || hasRH());
+  const favs = flows.filter(f=>FAV.set.has(f.id)), others = flows.filter(f=>!FAV.set.has(f.id));
+  const favCards = favs.map(f=>`<div class="pcard"><button type="button" class="pmain" ${f.attrs}><span class="ico">${f.icon()}</span><span class="pt">${h(f.title)}</span><span class="arr" aria-hidden="true">→</span></button>${favStar(f.id)}</div>`).join("");
+  const recent = [
+    ...S.requests.filter(isMine).map(r=>({k:"r:"+r.id, code:r.code, title:r.title, st:stLabel(r), cls:"s-"+stKey(r), at:r.updated_at||r.created_at, proc:"Reembolso"})),
+    ...T.list.filter(tiMine).map(c=>({k:"t:"+c.id, code:c.code, title:c.title, st:TI_STATUS[c.status]||c.status, cls:"t-"+c.status, at:c.updated_at||c.created_at, proc:"Chamado de TI"}))
+  ].sort((a,b)=>(b.at||"").localeCompare(a.at||"")).slice(0,2);
+  const recentHTML = recent.length ? recent.map(r=>`<button type="button" class="recent" data-recent="${h(r.k)}"><span class="rtop"><span class="rcode">${h(r.code)} · ${h(r.proc)}</span><span class="badge ${h(r.cls)}">${h(r.st)}</span></span><span class="rtitle">${h(r.title)}</span></button>`).join("")
+    : `<p class="muted small" style="margin:0">Você ainda não abriu nenhuma solicitação.</p>`;
+  // --- RH: banco de horas (compacto)
   const hb=HB.data;
-  if(!hb || HB.loading) bh=`<div class="big muted">…</div><p>Carregando seu saldo.</p>`;
-  else if(!hb.ativo) bh=`<p>O banco de horas ainda não está disponível.</p>`;
-  else if(!hb.cadastrado) bh=`<p>Seu cadastro no banco de horas ainda não foi concluído pelo RH.</p>`;
-  else bh=`<div class="big ${hb.saldo<0?"neg":"pos"}">${h(window.RH_BANCO_HORAS.formatar(hb.saldo))}</div><p>Saldo atual</p>`;
-  const per = hb && hb.periodo ? `<p class="small">Mês aberto: <strong>${h(window.RH_BANCO_HORAS.periodoTexto(hb.periodo))}</strong></p>` : (hb && hb.ativo ? `<p class="small muted">Nenhum mês aberto para lançamentos.</p>` : "");
-  const bhCard = `<article class="scard">
-      <div class="top"><span class="ico">${ICONS.clock}</span><div><h3>Meu banco de horas</h3></div></div>
+  let bh;
+  if(!hb || HB.loading) bh=`<div class="big muted">…</div>`;
+  else if(!hb.ativo) bh=`<p class="small">Ainda não disponível.</p>`;
+  else if(!hb.cadastrado) bh=`<p class="small">Cadastro pendente no RH.</p>`;
+  else bh=`<div class="big ${hb.saldo<0?"neg":"pos"}">${h(window.RH_BANCO_HORAS.formatar(hb.saldo))}</div><p class="small">Saldo atual</p>`;
+  const MESES_PT=["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const per = hb && hb.periodo ? `<p class="small"><strong>${MESES_PT[hb.periodo.mes-1]} ${hb.periodo.ano}</strong></p>` : "";
+  const bhCard = `<article class="scard compact">
+      <div class="top"><span class="ico">${ICONS.clock}</span><div><h3>Banco de horas</h3></div></div>
       ${bh}${per}
       <div class="acts">${hb&&hb.cadastrado&&hb.periodo?homeAction("Lançar horas",'data-quick="bh-novo"',true):""}${homeAction("Ver extrato",'data-quick="bh-extrato"')}</div></article>`;
-  // --- RH: férias
-  let fer=`<p class="muted">Carregando…</p>`;
+  // --- RH: aniversários (nascimento e tempo de empresa)
+  let anivCard;
+  if(rhOk){
+    const av = a => (typeof rhAvatar==="function") ? rhAvatar(a.full_name, a.photo_path, "sm") : "";
+    const dchip=(d,today)=>`<span class="hdate${today?" today":""}">${today?"Hoje":String(d).padStart(2,"0")+"/"+String(m).padStart(2,"0")}</span>`;
+    const bms=RH.aniv.filter(a=>a.birth_month===m).sort((a,b)=>a.birth_day-b.birth_day);
+    const ams=RH.aniv.filter(a=>a.admission_date && Number(a.admission_date.slice(5,7))===m && Number(a.admission_date.slice(0,4))<now.getFullYear())
+      .sort((a,b)=>Number(a.admission_date.slice(8,10))-Number(b.admission_date.slice(8,10)));
+    const col=(titulo, list, row, vazio)=>`<div class="acol"><h4>${titulo}</h4>${list.length?list.slice(0,4).map(row).join("")+(list.length>4?`<p class="muted small" style="margin:4px 0 0">e mais ${list.length-4}</p>`:""):`<p class="muted small">${vazio}</p>`}</div>`;
+    anivCard = `<article class="scard">
+      <div class="top"><span class="ico">${ICONS.cake}</span><div><h3>Aniversários de ${MESES_PT[m-1].toLowerCase()}</h3></div></div>
+      <div class="acols">
+        ${col("Nascimento", bms, a=>`<div class="arow">${av(a)}<span class="an">${h(a.full_name)}</span>${dchip(a.birth_day, a.birth_day===now.getDate())}</div>`, "Ninguém neste mês.")}
+        ${col("Tempo de empresa", ams, a=>{ const n=now.getFullYear()-Number(a.admission_date.slice(0,4)), d=Number(a.admission_date.slice(8,10)); return `<div class="arow">${av(a)}<span class="an">${h(a.full_name)}<small>${n} ${n===1?"ano":"anos"} de casa</small></span>${dchip(d, d===now.getDate())}</div>`; }, "Ninguém neste mês.")}
+      </div>
+      <div class="acts">${homeAction("Ver todos",'data-nav="rh:aniversarios"')}</div></article>`;
+  } else anivCard = `<article class="scard"><div class="top"><span class="ico">${ICONS.cake}</span><div><h3>Aniversários</h3></div></div><p class="muted small">${hasRH()&&RH.err?"Ainda não disponível.":"Carregando…"}</p></article>`;
+  // --- RH: férias (box pequeno, inclui coletivas)
+  let ferS="Nenhum pedido";
   if(rhOk){
     const mine=RH.ferias.filter(f=>f.requester_id===myId());
     const prox=mine.filter(f=>f.status==="aprovada" && f.end_date>=today).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
-    const pend=mine.filter(f=>f.status==="pendente").length, last=mine[0];
-    fer = prox ? `<p>Próximas férias aprovadas:<br><strong>${h(fmtDate(prox.start_date))} a ${h(fmtDate(prox.end_date))}</strong></p>`
-        : last ? `<p>Último pedido: ${h(fmtDate(last.start_date))} a ${h(fmtDate(last.end_date))}<br><strong>${h(RH_FER_STATUS[last.status]||last.status)}</strong></p>`
-        : `<p class="muted">Você ainda não pediu férias pelo portal.</p>`;
-    if(pend) fer += `<div class="pstatus"><span class="pill">${pend===1?"1 pedido aguardando o RH":pend+" pedidos aguardando o RH"}</span></div>`;
-  } else if(hasRH() && RH.err) fer=`<p class="muted">As férias ainda não estão disponíveis.</p>`;
-  const ferCard = `<article class="scard">
-      <div class="top"><span class="ico">${ICONS.sun}</span><div><h3>Férias</h3></div></div>
-      ${fer}
-      <div class="acts">${homeAction("Solicitar férias",'data-quick="ferias"',true)}${homeAction("Acompanhar pedidos",'data-nav="rh:ferias"')}</div></article>`;
-  // --- RH: atalhos com resumo
-  const tile=(tab,icon,title,sub)=> tab
-    ? `<button type="button" class="tile" data-nav="rh:${tab}">${ICONS[icon]}<span><b>${h(title)}</b><span class="s">${sub}</span></span></button>`
-    : `<div class="tile static">${ICONS[icon]}<span><b>${h(title)}</b><span class="s">${sub}</span></span></div>`;
-  let anivS="Sem datas cadastradas", evS="Nenhum evento programado", vrS="Informações em breve", benS="Em breve", docS="Nenhum documento publicado";
+    const pend=mine.filter(f=>f.status==="pendente").length;
+    const col=(RH.coletivas||[]).filter(c=>c.end_date>=today).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
+    const parts=[];
+    if(prox) parts.push(`Suas: ${h(fmtDate(prox.start_date).slice(0,5))} a ${h(fmtDate(prox.end_date).slice(0,5))}`);
+    else if(pend) parts.push(`${pend} ${pend===1?"pedido aguardando":"pedidos aguardando"} o RH`);
+    if(col) parts.push(`Coletivas: ${h(fmtDate(col.start_date).slice(0,5))} a ${h(fmtDate(col.end_date).slice(0,5))}`);
+    if(parts.length) ferS=parts.join("<br>");
+  }
+  // --- RH: atalhos
+  const tile=(tab,icon,title,sub)=>`<button type="button" class="tile" data-nav="rh:${tab}">${ICONS[icon]}<span><b>${h(title)}</b><span class="s">${sub}</span></span></button>`;
+  let evS="Nenhum evento programado", benS="Em breve", docS="Nenhum documento publicado";
   if(rhOk){
-    const bms=RH.aniv.filter(a=>a.birth_month===m), hojeB=bms.filter(a=>a.birth_day===now.getDate());
-    const ams=RH.aniv.filter(a=>a.admission_date && Number(a.admission_date.slice(5,7))===m && Number(a.admission_date.slice(0,4))<now.getFullYear());
-    if(bms.length||ams.length) anivS = hojeB.length ? `Hoje: ${h(hojeB.map(a=>a.full_name.split(" ")[0]).join(", "))}` : `${bms.length} ${bms.length===1?"aniversariante":"aniversariantes"} e ${ams.length} de tempo de casa no mês`;
     const ev=RH.eventos.find(e=>e.event_date>=today); if(ev) evS=`${h(fmtDate(ev.event_date).slice(0,5))} · ${h(ev.title)}`;
-    if(RH.cfg.vr_valor!=null) vrS=`${h(brl(RH.cfg.vr_valor))} por dia`;
     const nb=RH.beneficios.filter(b=>b.active).length; if(nb) benS=`${nb} ${nb===1?"benefício":"benefícios"}`;
     const nd=RH.docs.filter(d=>d.status==="publicado").length; if(nd) docS=`${nd} ${nd===1?"documento":"documentos"}`;
   }
@@ -1333,15 +1420,20 @@ function renderHome(v){
   v.innerHTML=`<section class="hello"><h2>Olá, ${h(first)}</h2><p class="muted">O que você precisa hoje?</p></section>
     <section class="hblock" aria-labelledby="h-sol" id="bloco-sol">
       <div class="hhead"><span class="hicon">${ICONS.inbox}</span><div><h2 id="h-sol">Solicitações</h2></div></div>
-      <div class="pgrid">${pcard("reembolsos",PROCESSES[0].icon,"Reembolso de despesas")}${pcard("ti",PROCESSES[1].icon,"Chamados de TI")}</div>
+      <div class="solwrap">
+        <div><h3 class="subh">★ Favoritos</h3>
+          ${favCards?`<div class="pgrid">${favCards}</div>`:`<p class="muted small" style="margin:0 0 8px">Você ainda não tem favoritos. Toque na ☆ de um fluxo para fixá-lo aqui.</p>`}
+          ${others.length?`<div class="favadd"><span class="muted small">Adicionar:</span>${others.map(f=>`<button type="button" class="chipfav" data-fav="${f.id}" aria-label="Adicionar ${h(f.title)} aos favoritos">☆ ${h(f.title)}</button>`).join("")}</div>`:""}
+        </div>
+        <div><h3 class="subh">Últimas solicitações</h3><div class="recents">${recentHTML}</div></div>
+      </div>
     </section>
     ${hasRH()?`<section class="hblock rh" aria-labelledby="h-rh" id="bloco-rh">
-      <div class="hhead"><span class="hicon">${ICONS.people}</span><div><h2 id="h-rh">RH</h2><p>Suas informações e os serviços de Recursos Humanos.</p></div></div>
-      <div class="sol-grid">${bhCard}${ferCard}</div>
+      <div class="hhead"><span class="hicon">${ICONS.people}</span><div><h2 id="h-rh">RH</h2></div></div>
+      <div class="rhrow">${bhCard}${anivCard}</div>
       <div class="tiles">
-        ${tile("aniversarios","cake","Aniversariantes",anivS)}
+        ${tile("ferias","sun","Férias",ferS)}
         ${tile("eventos","calendar","Eventos",evS)}
-        ${tile(null,"card","Vale-refeição",vrS)}
         ${tile("beneficios","heart","Benefícios",benS)}
         ${tile("documentos","file","Documentos e políticas",docS)}
       </div>
@@ -1825,6 +1917,13 @@ document.addEventListener("click", async ev=>{
   if(t.dataset.auth){ S.authMode=t.dataset.auth; S.authErr=null; S.authMsg=null; renderAuth(); const f=document.querySelector("#auth-form input"); if(f) f.focus(); return; }
   if(t.dataset.go){ closeMenu(); go(t.dataset.go); return; }
   if(t.dataset.quick){ quickAction(t.dataset.quick); return; }
+  if(t.dataset.fav){ toggleFav(t.dataset.fav); return; }
+  if(t.dataset.recent){
+    const [k,id]=t.dataset.recent.split(":");
+    if(k==="r"){ S.tab="minhas"; go("reembolsos"); S.openId=id; S.focusId=id; }
+    else { T.tab="meus"; go("ti"); T.openId=id; T.focusId=id; }
+    $("#view").innerHTML=""; render(); return;
+  }
   if(t.dataset.bnav){
     const k=t.dataset.bnav;
     if(k==="menu"){ $("#side").classList.contains("open") ? closeMenu() : openMenu(); return; }
