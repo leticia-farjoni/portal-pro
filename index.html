@@ -100,6 +100,7 @@ code{background:var(--disabled);padding:1px 5px;border-radius:3px;font-size:14px
 .s-pago{color:var(--ok);background:var(--ok-soft)}
 .s-devolvido{color:var(--warn)}
 .s-recusado{color:var(--bad)}
+.s-programado{color:var(--warn);background:var(--warn-soft)}
 .s-cancelado{color:var(--ink-3)}
 .cancelrow{margin-top:14px}
 .cancelbox{margin-top:16px;padding:14px 16px;border:1px solid #F3C9C9;background:#FFF8F8;border-radius:4px}
@@ -244,6 +245,27 @@ ul.att{margin:10px 0 0;padding-left:20px;font-size:14px}
 input[type=datetime-local]{width:100%;border:1px solid var(--field);background:#fff;border-radius:4px;padding:8px 12px;font-size:16px;min-height:40px}
 .pill.ti{background:var(--ice-soft);color:var(--ice)}
 
+/* Financeiro: filtros e resumo */
+.ffbar{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:0 0 18px;padding:14px 16px;background:#FAFBFC;border:1px solid var(--rule);border-radius:6px}
+.ffbar .field{min-width:150px;flex:0 1 180px}
+.ffbar .field.grow{flex:1 1 220px}
+.ffbar label{font-size:13px}
+.ffbar select,.ffbar input{min-height:38px;font-size:15px}
+.ffpanel{margin:0 0 24px}
+.ffkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 14px}
+.ffkpis div{background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:12px 16px}
+.ffkpis span{display:block;font-size:13px;color:var(--ink-2)}
+.ffkpis strong{display:block;font-size:22px;color:var(--navy);font-variant-numeric:tabular-nums}
+.ffkpis em{font-style:normal;font-size:13px;color:var(--ink-2)}
+.ffgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.ffcard{background:#fff;border:1px solid var(--card-line);border-radius:6px;padding:14px 16px}
+.ffcard h4{margin:0 0 8px;font-size:15px;color:var(--navy)}
+.fftbl{width:100%;border-collapse:collapse;font-size:14px}
+.fftbl th{font-weight:600;color:var(--ink-2);text-align:left;padding:4px 6px;border-bottom:1px solid var(--rule);font-size:13px}
+.fftbl td{padding:6px;border-bottom:1px solid var(--rule)}
+.fftbl tr:last-child td{border-bottom:0}
+.fftbl .n{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+
 /* Página inicial: Solicitações e RH */
 .hblock{max-width:1100px;margin:0 auto 36px}
 .hhead{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding-bottom:12px;border-bottom:2px solid var(--brand)}
@@ -377,7 +399,8 @@ const STATUS = {
   pago:"Pago",
   devolvido:"Devolvido para ajuste",
   recusado:"Recusado",
-  cancelado:"Cancelada"
+  cancelado:"Cancelada",
+  programado:"Pagamento programado"
 };
 const ACTION_LABEL = {
   enviado:"Enviou a solicitação", reenviado:"Reenviou com ajustes",
@@ -469,6 +492,9 @@ const isStaff = () => role()==="financeiro" || role()==="admin";
 const isAdmin = () => role()==="admin";
 const isMine = r => r.requester_id===myId();
 const reqName = r => (r.requester && r.requester.full_name) || (isMine(r) && S.profile ? S.profile.full_name : "Colaborador");
+const stKey = r => (r.status==="pago" && r.paid_date && r.paid_date>todayISO()) ? "programado" : r.status;
+const stLabel = r => STATUS[stKey(r)] || r.status;
+const recebedor = r => (r.on_behalf && r.on_behalf_of) ? r.on_behalf_of : reqName(r);
 const lastReturn = r => (r.history||[]).filter(e=>e.action==="devolvido").pop();
 function dbMessage(e){
   const m = (e && (e.message||e.error_description||e.msg)) || "";
@@ -683,10 +709,15 @@ function applyFocus(){
   fs.innerHTML=`<h3>${isR?"Solicitação aberta":"Chamado aberto"} pela notificação</h3><div class="list">${isR?rowHTML(item):tiRow(item)}</div>`;
 }
 
+async function loadReqAreas(){
+  S.reqAreas={};
+  if(!isStaff()) return;
+  try{ const { data } = await sb.rpc("req_areas"); (data||[]).forEach(x=>{ S.reqAreas[x.user_id]=x.area; }); }catch(e){}
+}
 async function loadAll(){
   await loadProfile();
   if(S.profile && S.profile.status==="aprovado"){
-    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs(), typeof RH!=="undefined"?RH.load():null, loadHB()]);
+    await Promise.all([loadSettings(), loadRequests(), loadUsers(), loadChamados(), loadDir(), loadNotifs(), typeof RH!=="undefined"?RH.load():null, loadHB(), loadReqAreas()]);
   }
   render();
 }
@@ -781,7 +812,7 @@ async function act2(id, kind, r, comment){
   S.busy[id]=kind; S.steps[id]=["Salvando…"]; render();
   const { error } = await sb.from("requests").update(upd).eq("id", id);
   if(error){ S.steps[id]=[dbMessage(error)]; }
-  else { if(kind==="cancelado"){ CANCEL.open[id]=false; CANCEL.cmt[id]=""; } else S.comment[id]=""; S.steps[id]=[]; if(kind==="comentario"){ RC.open[id]=false; RC.cmt[id]=""; } S.flash={kind:"ok", text: kind==="comentario" ? `${r.code}: comentário enviado.` : `${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
+  else { if(kind==="cancelado"){ CANCEL.open[id]=false; CANCEL.cmt[id]=""; } else S.comment[id]=""; S.steps[id]=[]; if(kind==="comentario"){ RC.open[id]=false; RC.cmt[id]=""; } S.flash={kind:"ok", text: kind==="comentario" ? `${r.code}: comentário enviado.` : kind==="pago" && upd.paid_date>todayISO() ? `${r.code}: pagamento programado para ${fmtDate(upd.paid_date)}.` : `${r.code}: ${STATUS[kind]}.`}; await loadRequests(); }
   S.busy[id]=null; render();
 }
 
@@ -793,13 +824,13 @@ function downloadSheet(){
     "Em nome de outro colaborador":r.on_behalf?"Sim":"Não", "Para quem":r.on_behalf_of||"",
     "Motivo / centro de custo":r.cost_center, "Parceiro, fornecedor, prospect ou evento":r.partner,
     "Período":dateRange(r), "Qtd. de despesas":(r.items||[]).length, "Total (R$)":Number(r.total)||0,
-    "Status":STATUS[r.status]||r.status, "Pix ou conta bancária":r.pix,
+    "Status":stLabel(r), "Pix ou conta bancária":r.pix,
     "Enviado em":fmtDate(r.created_at.slice(0,10)), "Aprovado em":histAt(r,"aprovado"), "Pago em":r.paid_date?fmtDate(r.paid_date):""
   }));
   const irows=[]; reqs.forEach(r=>(r.items||[]).forEach((it,i)=>irows.push({
     "Código":r.code, "Item":i+1, "Data":fmtDate(it.date), "Categoria":it.category, "Descrição":it.description,
     "Km rodados":it.km||"", "Valor (R$)":Number(it.amount)||0, "Acima do teto":it.over_limit?"Sim":"",
-    "Solicitante":reqName(r), "Status":STATUS[r.status]||r.status, "Comprovante":it.receipt_path?"Anexado":""
+    "Solicitante":reqName(r), "Status":stLabel(r), "Comprovante":it.receipt_path?"Anexado":""
   })));
   const money=(ws,n,col)=>{ for(let i=0;i<n;i++){ const c=ws[XLSX.utils.encode_cell({r:i+1,c:col})]; if(c) c.z='"R$" #,##0.00'; } };
   const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{"Código":""}]); money(ws,rows.length,10);
@@ -1029,7 +1060,7 @@ function rowHTML(r){
     <div class="stub"><span class="code">${h(r.code)}</span><span class="date">${h(fmtDateShort(r.created_at))}</span></div>
     <div class="rbody"><div class="desc">${h(r.title)}</div>
       <div class="meta"><span>${its.length===1?"1 despesa":`${its.length} despesas`}</span><span>${h(cats.length>2?`${cats.slice(0,2).join(", ")} e outras`:cats.join(", "))}</span>${S.tab!=="minhas"?`<span>${h(reqName(r))}</span>`:""}${its.some(i=>i.over_limit)?`<span class="flag">Acima do teto</span>`:""}${r.status==="devolvido"&&isMine(r)?`<span class="flag">Ajuste pedido</span>`:""}</div></div>
-    <div class="rend"><span class="amt">${h(brl(r.total))}</span><span class="badge s-${h(r.status)}">${h(STATUS[r.status]||r.status)}</span></div>
+    <div class="rend"><span class="amt">${h(brl(r.total))}</span><span class="badge s-${h(stKey(r))}">${h(stLabel(r))}</span></div>
   </button>${open?detailHTML(r):""}</div>`;
 }
 function detailHTML(r){
@@ -1039,7 +1070,7 @@ function detailHTML(r){
     return `<tr><td class="n">${i+1}</td><td>${h(fmtDate(it.date))}</td><td>${h(it.category)}</td><td>${h(it.description)}${it.km?`<br><span class="muted">${h(kmText(it))}</span>`:""}${it.over_limit&&lim?` <span class="flag">teto ${h(brl(lim))}</span>`:""}</td>
     <td>${it.receipt_path?`<button class="btn link" data-receipt="${h(it.receipt_path)}">Abrir</button>`:`<span class="muted">Sem comprovante</span>`}</td><td class="num">${h(brl(it.amount))}</td></tr>`; }).join("");
   return `<section class="detail" aria-label="Detalhes de ${h(r.code)}">
-    <div class="stamp s-${h(r.status)}" aria-hidden="true">${h(STATUS[r.status]||r.status)}</div>
+    <div class="stamp s-${h(stKey(r))}" aria-hidden="true">${h(stLabel(r))}</div>
     <dl class="grid">
       <div class="full"><dt>Título</dt><dd>${h(r.title)}</dd></div>
       <div><dt>Código</dt><dd>${h(r.code)}</dd></div>
@@ -1049,7 +1080,7 @@ function detailHTML(r){
       <div><dt>Parceiro, fornecedor, prospect ou evento</dt><dd>${h(r.partner)}</dd></div>
       <div><dt>Em nome de outro colaborador</dt><dd>${r.on_behalf?`Sim, ${h(r.on_behalf_of)}`:"Não"}</dd></div>
       <div><dt>Pix ou conta bancária</dt><dd>${h(r.pix)}</dd></div>
-      ${r.paid_date?`<div><dt>Pago em</dt><dd>${h(fmtDate(r.paid_date))}</dd></div>`:""}
+      ${r.paid_date?`<div><dt>${stKey(r)==="programado"?"Pagamento programado para":"Pago em"}</dt><dd>${h(fmtDate(r.paid_date))}</dd></div>`:""}
     </dl>
     <div class="tablewrap"><table class="items">
       <thead><tr><th class="n">#</th><th>Data</th><th>Categoria</th><th>Descrição</th><th>Comprovante</th><th class="num">Valor</th></tr></thead>
@@ -1095,6 +1126,7 @@ function actionsHTML(r){
   } else if(r.status==="aprovado" && isStaff()){
     inner=`<label for="pay-${h(id)}">Data do pagamento</label>
       <input type="date" id="pay-${h(id)}" data-pay="${h(id)}" value="${h(S.payDate[id]||todayISO())}" style="max-width:220px">
+      <span class="hint">Se a data for futura, a solicitação fica como “Pagamento programado” até esse dia e depois passa a “Pago”.</span>
       <div class="btns"><button class="btn ok" data-act="pago" data-id="${h(id)}" ${dis}>Registrar pagamento</button></div>`;
   } else if(r.status==="devolvido" && isMine(r)){
     inner=`<div class="btns" style="margin-top:0"><button class="btn primary" data-edit="${h(id)}">Corrigir e reenviar</button></div>`;
@@ -1170,17 +1202,64 @@ function renderForm(){
   </form>`;
   });
 }
+const FF0={ st:"", sol:"", cc:"", time:"", de:"", ate:"", q:"" };
+function ffList(){
+  const f=S.ff||FF0, q=normTxt(f.q);
+  return S.requests.filter(r=>
+    (!f.st || stKey(r)===f.st) &&
+    (!f.sol || r.requester_id===f.sol) &&
+    (!f.cc || r.cost_center===f.cc) &&
+    (!f.time || ((S.reqAreas||{})[r.requester_id]||"__sem")===f.time) &&
+    (!f.de || (r.created_at||"").slice(0,10)>=f.de) &&
+    (!f.ate || (r.created_at||"").slice(0,10)<=f.ate) &&
+    (!q || normTxt([r.code,r.title,r.partner,reqName(r),recebedor(r)].join(" ")).includes(q)));
+}
+function groupSum(list, keyFn){
+  const m={}; list.forEach(r=>{ const k=keyFn(r)||"Não informado"; (m[k]=m[k]||{n:0,v:0}); m[k].n++; m[k].v+=Number(r.total)||0; });
+  return Object.entries(m).sort((a,b)=>b[1].v-a[1].v);
+}
 function renderFinance(v){
+  const f=S.ff||(S.ff={...FF0});
   const byDate=a=>[...a].sort((x,y)=>(y.updated_at||"").localeCompare(x.updated_at||""));
-  const conf=byDate(S.requests.filter(pendingFin)), pay=byDate(S.requests.filter(r=>r.status==="aprovado"));
-  const back=byDate(S.requests.filter(r=>r.status==="devolvido")), paid=byDate(S.requests.filter(r=>r.status==="pago")).slice(0,30);
-  v.innerHTML=`<div class="bar"><h2>Financeiro</h2>
+  const list=ffList();
+  const active=Object.values(f).some(Boolean);
+  const base = f.st ? list : list.filter(r=>!["cancelado","recusado"].includes(r.status));
+  const total=sum(base), conf=base.filter(pendingFin), apag=base.filter(r=>r.status==="aprovado"||stKey(r)==="programado");
+  const people=[...new Map(S.requests.map(r=>[r.requester_id, reqName(r)])).entries()].sort((a,b)=>a[1].localeCompare(b[1]));
+  const times=[...new Set(Object.values(S.reqAreas||{}))].sort();
+  const opt=(val,label,cur)=>`<option value="${h(val)}" ${cur===val?"selected":""}>${h(label)}</option>`;
+  const stOpts=[["","Todos os status"],["aguardando_financeiro","Para analisar"],["aprovado","Aprovado, a pagar"],["programado","Pagamento programado"],["pago","Pago"],["devolvido","Devolvido para ajuste"],["recusado","Recusado"],["cancelado","Cancelada"]];
+  const tbl=(title, rows)=>`<div class="ffcard"><h4>${title}</h4>${rows.length?`<table class="fftbl"><thead><tr><th></th><th class="n">Qtd.</th><th class="n">Valor</th></tr></thead><tbody>${rows.slice(0,8).map(([k,x])=>`<tr><td>${h(k)}</td><td class="n">${x.n}</td><td class="n">${h(brl(x.v))}</td></tr>`).join("")}</tbody></table>${rows.length>8?`<p class="muted small" style="margin:6px 0 0">e mais ${rows.length-8}</p>`:""}`:`<p class="muted small">Sem dados.</p>`}</div>`;
+  const sections = f.st
+    ? `<h3>${h(STATUS[f.st]||f.st)}</h3>${listOrEmpty(byDate(list),"Nenhuma solicitação com esses filtros.")}`
+    : `<h3 style="margin-top:0">Para analisar</h3>${listOrEmpty(byDate(list.filter(pendingFin)),"Nenhuma solicitação aguardando análise.")}
+       <h3>Aprovadas, a pagar</h3>${listOrEmpty(byDate(list.filter(r=>r.status==="aprovado")),"Nenhum pagamento pendente.")}
+       ${(x=>x.length?`<h3>Pagamento programado</h3>${listOrEmpty(x,"")}`:"")(byDate(list.filter(r=>stKey(r)==="programado")))}
+       ${(x=>x.length?`<h3>Devolvidas, aguardando o solicitante</h3>${listOrEmpty(x,"")}`:"")(byDate(list.filter(r=>r.status==="devolvido")))}
+       ${(x=>x.length?`<h3>Pagas recentemente</h3>${listOrEmpty(x.slice(0,30),"")}`:"")(byDate(list.filter(r=>stKey(r)==="pago")))}`;
+  preserveFocus(()=>{ v.innerHTML=`<div class="bar"><h2>Análise do financeiro</h2>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-action="refresh">Atualizar</button><button class="btn" data-action="download-sheet">Baixar planilha</button></div></div>
-    <div class="totals"><div>Para analisar<strong>${h(brl(sum(conf)))}</strong></div><div>A pagar<strong>${h(brl(sum(pay)))}</strong></div></div>
-    <h3 style="margin-top:0">Para analisar</h3>${listOrEmpty(conf,"Nenhuma solicitação aguardando análise.")}
-    <h3>Aprovadas, a pagar</h3>${listOrEmpty(pay,"Nenhum pagamento pendente.")}
-    ${back.length?`<h3>Devolvidas, aguardando o solicitante</h3>${listOrEmpty(back,"")}`:""}
-    ${paid.length?`<h3>Pagas recentemente</h3>${listOrEmpty(paid,"")}`:""}`;
+    <div class="ffbar" role="search" aria-label="Filtros">
+      <div class="field"><label for="ff-st">Status</label><select id="ff-st" data-ff="st">${stOpts.map(([v2,l])=>opt(v2,l,f.st)).join("")}</select></div>
+      <div class="field"><label for="ff-sol">Solicitante</label><select id="ff-sol" data-ff="sol">${opt("","Todos",f.sol)}${people.map(([id,n])=>opt(id,n,f.sol)).join("")}</select></div>
+      <div class="field"><label for="ff-cc">Centro de custo</label><select id="ff-cc" data-ff="cc">${opt("","Todos",f.cc)}${COST_CENTERS.map(c=>opt(c,c,f.cc)).join("")}</select></div>
+      <div class="field"><label for="ff-time">Time</label><select id="ff-time" data-ff="time">${opt("","Todos",f.time)}${times.map(t=>opt(t,t,f.time)).join("")}${opt("__sem","Sem time definido",f.time)}</select></div>
+      <div class="field"><label for="ff-de">Enviado de</label><input type="date" id="ff-de" data-ff="de" value="${h(f.de)}"></div>
+      <div class="field"><label for="ff-ate">até</label><input type="date" id="ff-ate" data-ff="ate" value="${h(f.ate)}"></div>
+      <div class="field grow"><label for="ff-q">Buscar</label><input type="text" id="ff-q" data-ff="q" placeholder="Código, título, parceiro ou nome" value="${h(f.q)}"></div>
+      ${active?`<button type="button" class="btn link" data-action="ff-clear">Limpar filtros</button>`:""}
+    </div>
+    <section class="ffpanel" aria-label="Resumo">
+      <div class="ffkpis">
+        <div><span>Valor total</span><strong>${h(brl(total))}</strong></div>
+        <div><span>Solicitações</span><strong>${base.length}</strong></div>
+        <div><span>Para analisar</span><strong>${h(brl(sum(conf)))}</strong><em>${conf.length} ${conf.length===1?"solicitação":"solicitações"}</em></div>
+        <div><span>A pagar</span><strong>${h(brl(sum(apag)))}</strong><em>${apag.length} ${apag.length===1?"solicitação":"solicitações"}</em></div>
+      </div>
+      <div class="ffgrid">${tbl("Por centro de custo", groupSum(base, r=>r.cost_center))}${tbl("Por colaborador (quem recebe)", groupSum(base, recebedor))}</div>
+      <p class="muted small" style="margin:8px 0 0">${f.st?"O resumo considera o status filtrado.":"O resumo não inclui solicitações recusadas e canceladas."}${active?" Valores conforme os filtros aplicados.":""}</p>
+    </section>
+    ${sections}`; });
 }
 function processStatus(p){
   if(p.id==="ti") return tiProcessStatus();
@@ -1803,6 +1882,7 @@ document.addEventListener("click", async ev=>{
   const a=t.dataset.action; if(!a) return;
   if(a==="menu"){ $("#side").classList.contains("open") ? closeMenu() : openMenu(); return; }
   if(a==="menu-close"){ closeMenu(); return; }
+  if(a==="ff-clear"){ S.ff={...FF0}; render(); return; }
   if(a==="dismiss"){ S.flash=null; render(); }
   else if(a==="logout"){ await sb.auth.signOut(); }
   else if(a==="recheck"){ await loadAll(); }
@@ -1835,6 +1915,7 @@ document.addEventListener("input", ev=>{
     if(k==="amount"||k==="km"){ const tot=document.getElementById("f-total"); if(tot) tot.textContent=brl(formTotal()); }
     if(k==="km"){ const kv=document.getElementById(`i${i}_kmval`); if(kv) kv.textContent=kmHint(S.form.items[i]); }
     return; }
+  if(t.dataset.ff){ (S.ff=S.ff||{...FF0})[t.dataset.ff]=t.value; render(); return; }
   if(t.dataset.cmt){ S.comment[t.dataset.cmt]=t.value; return; }
   if(t.dataset.ccmt){ CANCEL.cmt[t.dataset.ccmt]=t.value; return; }
   if(t.dataset.rc){ RC.cmt[t.dataset.rc]=t.value; return; }
