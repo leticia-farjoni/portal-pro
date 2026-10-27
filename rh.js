@@ -65,6 +65,16 @@ const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
   .rh-table td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:middle}
   .rh-table input{min-height:34px;padding:5px 8px;font-size:14px}
   .rh-month{display:flex;align-items:center;gap:10px}
+  .rh-pl{display:flex;align-items:center;gap:12px;min-width:0}
+  .rh-av{width:48px;height:48px;border-radius:50%;flex:none;object-fit:cover;background:var(--carbon-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;overflow:hidden}
+  .rh-av.sm{width:36px;height:36px;font-size:13px}
+  .rh-av.lg{width:72px;height:72px;font-size:22px}
+  .rh-person.today .rh-av{box-shadow:0 0 0 3px var(--red)}
+  .rh-dchip{display:flex;flex-direction:column;align-items:center;min-width:52px;border:1px solid var(--rule);border-top:3px solid var(--red);border-radius:6px;padding:2px 6px;line-height:1.15;flex:none}
+  .rh-dchip b{font-size:18px;color:var(--navy)}
+  .rh-dchip span{font-size:11px;color:var(--ink-2);text-transform:uppercase}
+  .rh-person.today .rh-dchip{background:var(--red);border-color:var(--red)}
+  .rh-person.today .rh-dchip b,.rh-person.today .rh-dchip span{color:#fff}
   .rh-month strong{min-width:150px;text-align:center;text-transform:capitalize}
   .rh-vr{font-size:32px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
   .rh-search{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
@@ -126,6 +136,7 @@ function rhTempo(adm){
 }
 function rhErr(e){
   const m=(e&&e.message)||"";
+  if(/photo_path/i.test(m)) return "As fotos ainda não estão ativas. Rode o arquivo atualizacao-fotos-financeiro.sql no SQL Editor do Supabase.";
   if(/image_path/i.test(m)) return "As imagens dos benefícios ainda não estão ativas. Rode o arquivo rh-beneficios-imagem.sql no SQL Editor do Supabase.";
   if(/does not exist|schema cache|Could not find the (table|function)/i.test(m)) return "O Portal do Colaborador ainda não está ativo no banco. Rode o arquivo rh.sql no SQL Editor do Supabase.";
   return dbMessage(e);
@@ -133,6 +144,18 @@ function rhErr(e){
 const rhV = (o,k) => h((o||{})[k] ?? "");
 const rhSt = (st,map) => `<span class="rh-st ${h(st)}">${h(map[st]||st)}</span>`;
 const rhPre = s => h(s||"").replace(/(https?:\/\/[^\s<]+)/g, u=>`<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+RH.photoUrls = {};
+const rhIni = n => String(n||"").trim().split(/\s+/).filter(Boolean).map((w,i,a)=>i===0||i===a.length-1?w[0]:"").join("").slice(0,2).toUpperCase();
+function rhAvatar(name, path, size, preview){
+  const url = preview || (path && RH.photoUrls[path]);
+  return url ? `<img class="rh-av ${size||""}" src="${h(url)}" alt="">` : `<span class="rh-av ${size||""}" aria-hidden="true">${h(rhIni(name))}</span>`;
+}
+const rhDChip = (d,m,today) => `<span class="rh-dchip" aria-label="${today?"Hoje":d+" de "+RH_MONTHS[m-1]}">${today?`<b>Hoje</b><span>${String(d).padStart(2,"0")}/${String(m).padStart(2,"0")}</span>`:`<b>${String(d).padStart(2,"0")}</b><span>${RH_MONTHS[m-1].slice(0,3)}</span>`}</span>`;
+async function rhLoadPhotos(){
+  const paths=[...new Set([...(RH.aniv||[]).map(a=>a.photo_path), ...(RH.colabs||[]).map(c=>c.photo_path)].filter(p=>p && !RH.photoUrls[p]))];
+  if(!paths.length) return;
+  try{ const { data } = await sb.storage.from("rh-fotos").createSignedUrls(paths, 3600); (data||[]).forEach(x=>{ if(x.signedUrl) RH.photoUrls[x.path]=x.signedUrl; }); }catch(e){}
+}
 const rhEnd = f => (f.start && Number(f.days)>0) ? rhAddDays(f.start, Number(f.days)-1) : "";
 
 /* ---------- carregamento ---------- */
@@ -157,6 +180,7 @@ RH.load = async function(){
       RH.people=p.data||[]; RH.colabs=c.data||[];
     }) : null
   ]);
+  await rhLoadPhotos();
   RH.err = errs.length ? rhErr(errs[0]) : null;
   RH.loaded = true;
 };
@@ -318,11 +342,12 @@ function rhAniv(v){
     <div class="rh-grid" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr))">
       <div class="rh-card"><h3>Aniversariantes do mês</h3>
         ${bms.length?bms.map(a=>{ const today=isCur&&a.birth_day===now.getDate();
-          return `<div class="rh-person${today?" today":""}"><span><span class="who2">${h(a.full_name)}</span>${a.department?`<br><span class="det">${h(a.department)}</span>`:""}</span><span class="dt">${today?"Hoje":String(a.birth_day).padStart(2,"0")+"/"+String(m).padStart(2,"0")}</span></div>`; }).join("")
+          return `<div class="rh-person${today?" today":""}"><span class="rh-pl">${rhAvatar(a.full_name,a.photo_path)}<span><span class="who2">${h(a.full_name)}</span>${a.department?`<br><span class="det">${h(a.department)}</span>`:""}</span></span>${rhDChip(a.birth_day,m,today)}</div>`; }).join("")
           :`<p class="muted small">Ninguém faz aniversário em ${RH_MONTHS[m-1]}.</p>`}</div>
       <div class="rh-card"><h3>Aniversários de empresa</h3>
         ${ams.length?ams.map(a=>{ const n=y-Number(a.admission_date.slice(0,4));
-          return `<div class="rh-person"><span><span class="who2">${h(a.full_name)}</span><br><span class="det">${a.department?h(a.department)+" · ":""}Admissão em ${h(fmtDate(a.admission_date))} · ${h(rhTempo(a.admission_date))} de casa</span></span><span class="dt">${n} ${n===1?"ano":"anos"} em ${a.admission_date.slice(8,10)}/${String(m).padStart(2,"0")}</span></div>`; }).join("")
+          const dd=Number(a.admission_date.slice(8,10)), today=isCur&&dd===now.getDate();
+          return `<div class="rh-person${today?" today":""}"><span class="rh-pl">${rhAvatar(a.full_name,a.photo_path)}<span><span class="who2">${h(a.full_name)}</span><br><span class="det"><strong>${n} ${n===1?"ano":"anos"} de casa</strong> · admissão em ${h(fmtDate(a.admission_date))}${a.department?" · "+h(a.department):""}</span></span></span>${rhDChip(dd,m,today)}</div>`; }).join("")
           :`<p class="muted small">Ninguém completa ano de casa em ${RH_MONTHS[m-1]}.</p>`}</div>
     </div>`;
 }
@@ -457,16 +482,20 @@ function rhAFerias(){
 }
 function rhAColab(){
   const byId={}; RH.colabs.forEach(c=>byId[c.user_id]=c);
-  return `<p class="muted small" style="margin-top:0">Esses dados alimentam os aniversariantes e o tempo de casa. O ano de nascimento nunca aparece para os colaboradores.</p>
-  <div class="tablewrap"><table class="rh-table"><thead><tr><th>Colaborador</th><th>Nascimento</th><th>Admissão</th><th>Setor</th><th>Tempo de casa</th><th></th></tr></thead><tbody>
+  return `<p class="muted small" style="margin-top:0">Esses dados alimentam os aniversariantes e o tempo de casa. O ano de nascimento nunca aparece para os colaboradores. Para incluir a foto, clique em Editar.</p>
+  <div class="tablewrap"><table class="rh-table"><thead><tr><th>Foto</th><th>Colaborador</th><th>Nascimento</th><th>Admissão</th><th>Setor</th><th>Tempo de casa</th><th></th></tr></thead><tbody>
   ${RH.people.map(p=>{ const c=byId[p.id]||{}, e=RH.ce[p.id], b=RH.busy["c"+p.id]?"disabled":"";
-    if(e) return `<tr><td><strong>${h(p.full_name)}</strong><br><span class="small muted">${h(p.email)}</span></td>
+    const fk="foto:"+p.id;
+    if(e) return `<tr><td>${rhAvatar(p.full_name, e.photo_path, "lg", RH.files[fk+"_url"])}
+        <label class="btn link" style="display:block;margin-top:4px;cursor:pointer">Escolher foto<input type="file" accept="image/jpeg,image/png,image/webp" data-rhfile="${h(fk)}" class="sr" ${b}></label>
+        ${e.photo_path||RH.files[fk]?`<button type="button" class="btn link" data-rhfotox="${h(p.id)}" ${b}>Remover foto</button>`:""}</td>
+      <td><strong>${h(p.full_name)}</strong><br><span class="small muted">${h(p.email)}</span></td>
       <td><input type="date" data-rhce="${h(p.id)}" data-k="birth_date" value="${rhV(e,"birth_date")}" aria-label="Nascimento" ${b}></td>
       <td><input type="date" data-rhce="${h(p.id)}" data-k="admission_date" value="${rhV(e,"admission_date")}" aria-label="Admissão" ${b}></td>
       <td><input type="text" data-rhce="${h(p.id)}" data-k="department" value="${rhV(e,"department")}" aria-label="Setor" ${b}></td>
       <td>${h(rhTempo(e.admission_date))}</td>
       <td style="white-space:nowrap"><button class="btn primary" data-rhcsave="${h(p.id)}" ${b}>Salvar</button> <button class="btn" data-rhcno="${h(p.id)}" ${b}>Voltar</button>${RH.steps["c"+p.id]&&RH.steps["c"+p.id].length?`<div class="err">${h(RH.steps["c"+p.id][0])}</div>`:""}</td></tr>`;
-    return `<tr><td><strong>${h(p.full_name)}</strong><br><span class="small muted">${h(p.email)}</span></td><td>${h(fmtDate(c.birth_date))}</td><td>${h(fmtDate(c.admission_date))}</td><td>${h(c.department||"")}</td><td>${h(rhTempo(c.admission_date))}</td>
+    return `<tr><td>${rhAvatar(p.full_name, c.photo_path, "sm")}</td><td><strong>${h(p.full_name)}</strong><br><span class="small muted">${h(p.email)}</span></td><td>${h(fmtDate(c.birth_date))}</td><td>${h(fmtDate(c.admission_date))}</td><td>${h(c.department||"")}</td><td>${h(rhTempo(c.admission_date))}</td>
       <td><button class="btn" data-rhcedit="${h(p.id)}">Editar</button></td></tr>`; }).join("")}
   </tbody></table></div>`;
 }
@@ -591,11 +620,26 @@ async function rhFeriasAct(id, kind){
   await rhAfter({aprovada:"Férias aprovadas.", rejeitada:"Férias rejeitadas.", cancelada:"Solicitação cancelada."}[kind]);
 }
 async function rhSaveColab(uid){
-  const e=RH.ce[uid], k="c"+uid; RH.busy[k]=true; RH.steps[k]=[]; render();
-  const { error } = await sb.from("colaboradores").upsert({ user_id:uid, birth_date:e.birth_date||null, admission_date:e.admission_date||null, department:(e.department||"").trim()||null, updated_at:new Date().toISOString() });
+  const e=RH.ce[uid], k="c"+uid, fk="foto:"+uid; RH.busy[k]=true; RH.steps[k]=[]; render();
+  let photo=e.photo_path||null;
+  if(RH.files[fk]){
+    try{
+      let f=RH.files[fk], type=(f.type||"").toLowerCase();
+      if(!/^image\/(jpeg|png|webp)$/.test(type) || f.size>500000){
+        if(typeof shrinkImage!=="function") throw new Error("Use uma foto JPG, PNG ou WebP de até 500 KB.");
+        f=await shrinkImage(f,500000); type="image/jpeg";
+      }
+      const path=`${uid}/${Date.now().toString(36)}.${type==="image/png"?"png":type==="image/webp"?"webp":"jpg"}`;
+      const up=await sb.storage.from("rh-fotos").upload(path, f, { contentType:type, upsert:false });
+      if(up.error) throw up.error;
+      photo=path;
+    }catch(err){ RH.busy[k]=false; RH.steps[k]=[/bucket|not found/i.test(err.message||"")?"O envio de fotos ainda não está ativo. Rode o atualizacao-fotos-financeiro.sql no Supabase.":(err.message||rhErr(err))]; render(); return; }
+  }
+  const { error } = await sb.from("colaboradores").upsert({ user_id:uid, birth_date:e.birth_date||null, admission_date:e.admission_date||null, department:(e.department||"").trim()||null, photo_path:photo, updated_at:new Date().toISOString() });
   RH.busy[k]=false;
   if(error){ RH.steps[k]=[rhErr(error)]; render(); return; }
-  delete RH.ce[uid]; await rhAfter("Dados do colaborador salvos.");
+  if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]);
+  delete RH.ce[uid]; delete RH.files[fk]; delete RH.files[fk+"_url"]; await rhAfter("Dados do colaborador salvos.");
 }
 async function rhSaveEvento(){
   const e=RH.ev;
@@ -710,8 +754,9 @@ RH.click = function(t){
   if(d.rhf){ rhFeriasAct(d.id, d.rhf); return true; }
   if(d.rhdoc){ rhOpenDoc(d.rhdoc, d.ver); return true; }
   if(d.rhmonth!=null){ const n=Number(d.rhmonth); if(n===0) RH.ym=null; else { let {y,m}=RH.ym; m+=n; if(m<1){m=12;y--;} if(m>12){m=1;y++;} RH.ym={y,m}; } render(); return true; }
-  if(d.rhcedit){ const c=RH.colabs.find(x=>x.user_id===d.rhcedit)||{}; RH.ce[d.rhcedit]={birth_date:c.birth_date||"", admission_date:c.admission_date||"", department:c.department||""}; render(); return true; }
-  if(d.rhcno){ delete RH.ce[d.rhcno]; render(); return true; }
+  if(d.rhfotox){ const uid=d.rhfotox, fk="foto:"+uid; if(RH.ce[uid]) RH.ce[uid].photo_path=null; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); delete RH.files[fk]; delete RH.files[fk+"_url"]; render(); return true; }
+  if(d.rhcedit){ const c=RH.colabs.find(x=>x.user_id===d.rhcedit)||{}; RH.ce[d.rhcedit]={photo_path:c.photo_path||null, birth_date:c.birth_date||"", admission_date:c.admission_date||"", department:c.department||""}; render(); return true; }
+  if(d.rhcno){ const fk="foto:"+d.rhcno; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); delete RH.files[fk]; delete RH.files[fk+"_url"]; delete RH.ce[d.rhcno]; render(); return true; }
   if(d.rhcsave){ rhSaveColab(d.rhcsave); return true; }
   if(d.rheved){ RH.ev={...RH.eventos.find(x=>x.id===d.rheved)}; RH.steps.ev=[]; render(); window.scrollTo({top:0}); return true; }
   if(d.rhevdel){ const e=RH.eventos.find(x=>x.id===d.rhevdel); if(e && confirm(`Excluir o evento “${e.title}”?`)) sb.from("eventos").delete().eq("id",e.id).then(r=>r.error?(S.flash={kind:"warn",text:rhErr(r.error)},render()):rhAfter("Evento excluído.")); return true; }
@@ -756,6 +801,7 @@ RH.input = function(t){
 RH.change = function(t){
   const d=t.dataset;
   if(d.rhcat!=null){ RH.cat=t.value; render(); return true; }
+  if(d.rhfile && d.rhfile.startsWith("foto:")){ const fk=d.rhfile, f=t.files&&t.files[0]||null; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); RH.files[fk]=f; RH.files[fk+"_url"]=f?URL.createObjectURL(f):null; render(); return true; }
   if(d.rhfile==="bfimg"){ const f=t.files&&t.files[0]||null; if(RH.files.bfimgUrl) URL.revokeObjectURL(RH.files.bfimgUrl); RH.files.bfimg=f; RH.files.bfimgUrl=f?URL.createObjectURL(f):null; render(); return true; }
   if(d.rhfile){ RH.files[d.rhfile]=t.files&&t.files[0]||null; render(); return true; }
   if(d.rhbfdoc){ const s=new Set(RH.bf.doc_ids||[]); t.checked?s.add(d.rhbfdoc):s.delete(d.rhbfdoc); RH.bf.doc_ids=[...s]; return true; }
