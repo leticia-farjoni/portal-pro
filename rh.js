@@ -15,13 +15,13 @@
    ===================================================================== */
 
 const RH_DOC_CATS = ["Políticas internas","Código de conduta","Políticas de RH","Benefícios","Procedimentos internos","Formulários","Comunicados oficiais","Outros"];
-const RH_FER_STATUS = { rascunho:"Rascunho", pendente:"Pendente de aprovação", aprovada:"Aprovada", rejeitada:"Rejeitada", cancelada:"Cancelada" };
-const RH_ACTION = { ferias_rascunho:"salvou um rascunho de férias", ferias_pendente:"pediu férias", ferias_aprovada:"aprovou as férias", ferias_rejeitada:"rejeitou as férias", ferias_cancelada:"cancelou as férias" };
-const RH_HIST = { rascunho:"Salvou como rascunho", pendente:"Enviou para aprovação", aprovada:"Aprovou", rejeitada:"Rejeitou", cancelada:"Cancelou" };
+const RH_FER_STATUS = { rascunho:"Rascunho", pendente:"Pendente de aprovação", ajuste:"Ajuste solicitado", aprovada:"Aprovada", rejeitada:"Não aprovada", cancelada:"Cancelada" };
+const RH_ACTION = { ferias_rascunho:"salvou um rascunho de férias", ferias_pendente:"pediu férias", ferias_aprovada:"aprovou as férias", ferias_rejeitada:"não aprovou as férias", ferias_ajuste:"pediu um ajuste no seu pedido de férias", ferias_reenviada:"reenviou o pedido de férias com ajustes", ferias_lembrete:"lembra: suas férias estão chegando. Boas férias! 🌴", ferias_cancelada:"cancelou as férias" };
+const RH_HIST = { rascunho:"Salvou como rascunho", pendente:"Enviou para aprovação", ajuste:"Pediu ajuste", reenviada:"Reenviou com ajustes", aprovada:"Aprovou", rejeitada:"Não aprovou", cancelada:"Cancelou" };
 const RH_AUD = { todos:"Todos os colaboradores", rh:"Somente RH", admin:"Somente administração" };
 const RH_DOC_ST = { rascunho:"Rascunho", publicado:"Publicado", arquivado:"Arquivado" };
 const RH_TABS = [["visao","Visão geral"],["horas","Meu banco de horas"],["ferias","Férias"],["aniversarios","Aniversariantes"],["eventos","Calendário de eventos"],["vr","VR e VT"],["beneficios","Benefícios"],["documentos","Documentos e políticas"]];
-const RH_ADMIN_TABS = [["a-ferias","Férias"],["a-coletivas","Férias coletivas"],["a-colab","Colaboradores"],["a-eventos","Eventos"],["a-vr","VR e VT"],["a-benef","Benefícios"],["a-docs","Documentos"],["a-regras","Regras de férias"]];
+const RH_ADMIN_TABS = [["a-ferias","Férias"],["a-cal","Calendário de férias"],["a-coletivas","Férias coletivas"],["a-emails","E-mails"],["a-colab","Colaboradores"],["a-eventos","Eventos"],["a-vr","VR e VT"],["a-benef","Benefícios"],["a-docs","Documentos"],["a-regras","Regras de férias"]];
 const RH_MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18.5 14.5c1.4.8 2.3 2.4 2.5 4.5"/></svg>';
 
@@ -65,6 +65,29 @@ const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
   .rh-table td{border-bottom:1px solid var(--rule);padding:8px;vertical-align:middle}
   .rh-table input{min-height:34px;padding:5px 8px;font-size:14px}
   .rh-month{display:flex;align-items:center;gap:10px}
+  .rh-st.ajuste{color:var(--warn);background:var(--warn-soft)}
+  .rh-st.rejeitada{color:var(--bad)}
+  .cal-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 12px}
+  .cal-leg{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink-2)}
+  .cal-leg span{display:flex;align-items:center;gap:6px}
+  .cal-leg i,.cal-row i{display:inline-block;width:12px;height:12px;border-radius:3px}
+  i.ok{background:#1E7B4A} i.req{background:#E8A33D} i.col{background:#8A949E}
+  .cal-wrap{overflow-x:auto}
+  .cal{display:grid;grid-template-columns:repeat(7,minmax(96px,1fr));border:1px solid var(--rule);border-radius:6px;overflow:hidden;min-width:700px}
+  .cal-h{background:#F3F5F8;font-size:12px;font-weight:600;color:var(--ink-2);padding:6px 8px;border-bottom:1px solid var(--rule)}
+  .cal-c{min-height:92px;padding:4px 5px 6px;border-right:1px solid var(--rule);border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:3px;background:#fff}
+  .cal-c:nth-child(7n){border-right:0}
+  .cal-c.out{background:#FAFBFC}
+  .cal-c.wk{background:#FBFBFC}
+  .cal-c.today .cal-d{background:var(--red);color:#fff;border-radius:10px;padding:0 7px}
+  .cal-d{font-size:12px;font-weight:700;color:var(--ink-2);align-self:flex-start}
+  .cal-chip{display:block;width:100%;text-align:left;border:0;border-radius:4px;padding:2px 6px;font-size:12px;font-weight:600;color:#fff;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cal-chip.ok{background:#1E7B4A} .cal-chip.req{background:#E8A33D;color:#3A2600} .cal-chip.col{background:#8A949E;cursor:default}
+  button.cal-chip:hover{filter:brightness(1.08);outline:2px solid rgba(0,0,0,.15)}
+  .cal-more{font-size:11px;color:var(--ink-2)}
+  .cal-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:#fff;border:1px solid var(--rule);border-radius:6px;padding:10px 12px;margin-bottom:8px;cursor:pointer;color:var(--ink)}
+  .cal-row span{flex:1}
+  .cal-row:hover{border-color:var(--icon)}
   .rh-card.coletivas{margin:0 0 16px;border-left:4px solid var(--red)}
   .vrvt .vrhead{display:flex;align-items:center;gap:12px}
   .vrvt .vrico{width:40px;height:40px;border-radius:10px;background:var(--carbon-soft);color:var(--brand);display:flex;align-items:center;justify-content:center}
@@ -120,7 +143,7 @@ const RH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 })();
 
 const RH = {
-  tab:"visao", atab:"a-ferias", coletivas:[], cl:null, loaded:false, err:null,
+  tab:"visao", atab:"a-ferias", coletivas:[], cl:null, emails:[], emailsOk:false, calYM:null, loaded:false, err:null,
   cfg:{}, ferias:[], aniv:[], eventos:[], beneficios:[], docs:[], versoes:[], colabs:[], people:[],
   form:{}, ferr:{}, busy:{}, steps:{}, open:{}, note:{}, q:"", cat:"", ym:null, showPast:false, filt:"pendente",
   ev:null, bf:null, dc:null, nv:{}, vr:null, rg:null, ce:{}, files:{}
@@ -142,6 +165,7 @@ function rhTempo(adm){
 function rhErr(e){
   const m=(e&&e.message)||"";
   if(/photo_path/i.test(m)) return "As fotos ainda não estão ativas. Rode o arquivo atualizacao-fotos-financeiro.sql no SQL Editor do Supabase.";
+  if(/ferias_status_check|lembrete_em|rh_emails|rh_ferias_lembretes/i.test(m)) return "Esta função ainda não está ativa no banco. Rode o arquivo atualizacao-ferias.sql no SQL Editor do Supabase.";
   if(/vt_valor|vt_periodicidade|vt_criterios|vt_regras|vt_observacoes|ferias_coletivas|portal_favoritos/i.test(m)) return "Esta função ainda não está ativa no banco. Rode o arquivo atualizacao-inicio-favoritos.sql no SQL Editor do Supabase.";
   if(/image_path/i.test(m)) return "As imagens dos benefícios ainda não estão ativas. Rode o arquivo rh-beneficios-imagem.sql no SQL Editor do Supabase.";
   if(/does not exist|schema cache|Could not find the (table|function)/i.test(m)) return "O Portal do Colaborador ainda não está ativo no banco. Rode o arquivo rh.sql no SQL Editor do Supabase.";
@@ -173,6 +197,7 @@ RH.load = async function(){
     run(async()=>{ const {data,error}=await sb.from("rh_settings").select("*").eq("id",1).maybeSingle(); if(error) throw error; RH.cfg=data||{}; }),
     run(async()=>{ const {data,error}=await sb.from("ferias").select("*, requester:profiles!ferias_requester_id_fkey(full_name,email)").order("created_at",{ascending:false}); if(error) throw error; RH.ferias=data||[]; }),
     run(async()=>{ const {data,error}=await sb.rpc("rh_aniversarios"); if(error) throw error; RH.aniv=data||[]; }),
+    RH.isRH() ? (async()=>{ try{ const {data,error}=await sb.from("rh_emails").select("*").order("criado_em",{ascending:false}).limit(200); RH.emails = error ? [] : (data||[]); RH.emailsOk=!error; }catch(e){ RH.emails=[]; RH.emailsOk=false; } })() : null,
     (async()=>{ try{ const {data,error}=await sb.from("ferias_coletivas").select("*").order("start_date",{ascending:true}); RH.coletivas = error ? [] : (data||[]); RH.coletivasOk=!error; }catch(e){ RH.coletivas=[]; RH.coletivasOk=false; } })(),
     run(async()=>{ const {data,error}=await sb.from("eventos").select("*").order("event_date",{ascending:true}); if(error) throw error; RH.eventos=data||[]; }),
     run(async()=>{ const {data,error}=await sb.from("beneficios").select("*").order("sort_order",{ascending:true}).order("name",{ascending:true}); if(error) throw error; RH.beneficios=data||[]; }),
@@ -287,25 +312,29 @@ function rhFeriasItem(f, admin){
   const k="f"+f.id, open=!!RH.open[k], b=RH.busy[k]?"disabled":"", mine=f.requester_id===myId();
   let act="";
   if(admin && f.status==="pendente"){
-    act=`<div class="field"><label for="rhn-${h(f.id)}">Justificativa${" "}(obrigatória para rejeitar)</label><textarea id="rhn-${h(f.id)}" data-rhnote="${h(k)}">${h(RH.note[k]||"")}</textarea></div>
-      <div class="btns"><button class="btn ok" data-rhf="aprovada" data-id="${h(f.id)}" ${b}>Aprovar</button><button class="btn bad" data-rhf="rejeitada" data-id="${h(f.id)}" ${b}>Rejeitar</button></div>`;
+    act=`<div class="field"><label for="rhn-${h(f.id)}">Comentário para o colaborador (obrigatório para pedir ajuste ou não aprovar)</label><textarea id="rhn-${h(f.id)}" data-rhnote="${h(k)}">${h(RH.note[k]||"")}</textarea></div>
+      <div class="btns"><button class="btn ok" data-rhf="aprovada" data-id="${h(f.id)}" ${b}>Aprovar</button><button class="btn" data-rhf="ajuste" data-id="${h(f.id)}" ${b}>Pedir ajuste</button><button class="btn bad" data-rhf="rejeitada" data-id="${h(f.id)}" ${b}>Não aprovar</button></div>`;
   } else if(admin && f.status==="aprovada"){
     act=`<div class="field"><label for="rhn-${h(f.id)}">Motivo do cancelamento</label><textarea id="rhn-${h(f.id)}" data-rhnote="${h(k)}">${h(RH.note[k]||"")}</textarea></div>
       <div class="btns"><button class="btn bad" data-rhf="cancelada" data-id="${h(f.id)}" ${b}>Cancelar férias aprovadas</button></div>`;
   } else if(!admin && mine && f.status==="rascunho"){
     act=`<div class="btns"><button class="btn primary" data-rhf="enviar" data-id="${h(f.id)}" ${b}>Enviar para aprovação</button><button class="btn" data-rhf="editar" data-id="${h(f.id)}" ${b}>Editar</button><button class="btn bad" data-rhf="cancelada" data-id="${h(f.id)}" ${b}>Descartar</button></div>`;
+  } else if(!admin && mine && f.status==="ajuste"){
+    act=`<div class="btns"><button class="btn primary" data-rhf="editar" data-id="${h(f.id)}" ${b}>Ajustar e reenviar</button><button class="btn bad" data-rhf="cancelada" data-id="${h(f.id)}" ${b}>Cancelar solicitação</button></div>`;
   } else if(!admin && mine && f.status==="pendente"){
     act=`<div class="btns"><button class="btn bad" data-rhf="cancelada" data-id="${h(f.id)}" ${b}>Cancelar solicitação</button></div>`;
   }
-  return `<div class="rh-item"><button class="rh-item-h" data-rhopen="${h(k)}" aria-expanded="${open}">
+  const noteLbl = f.status==="rejeitada" ? "Motivo da não aprovação" : (f.status==="ajuste"||(f.status==="pendente"&&f.decision_note)) ? "Ajuste pedido pelo RH" : "Observação do RH";
+  return `<div class="rh-item" id="fer-${h(f.id)}"><button class="rh-item-h" data-rhopen="${h(k)}" aria-expanded="${open}">
       <span><span class="t">${h(fmtDate(f.start_date))} a ${h(fmtDate(f.end_date))}</span>
       <span class="s"> · ${f.days} ${f.days===1?"dia":"dias"}${admin?` · ${h((f.requester&&f.requester.full_name)||"")}`:""} · ${h(f.code)}</span></span>${rhSt(f.status,RH_FER_STATUS)}</button>
-    ${open?`<div class="rh-item-b"><dl>
+    ${open?`<div class="rh-item-b">
+      ${!admin&&f.status==="ajuste"&&f.decision_note?`<div class="notice" style="margin-top:14px"><strong>O RH pediu um ajuste:</strong> ${h(f.decision_note)}</div>`:""}<dl>
       ${admin?`<div><dt>Colaborador</dt><dd>${h((f.requester&&f.requester.full_name)||"")}</dd></div>`:""}
       <div><dt>Período</dt><dd>${h(fmtDate(f.start_date))} a ${h(fmtDate(f.end_date))} (${f.days} dias)</dd></div>
       <div><dt>Solicitado em</dt><dd>${h(fmtWhen(f.created_at))}</dd></div>
       ${f.notes?`<div><dt>Observações</dt><dd>${h(f.notes)}</dd></div>`:""}
-      ${f.decision_note?`<div><dt>${f.status==="rejeitada"?"Justificativa da rejeição":"Observação do RH"}</dt><dd>${h(f.decision_note)}</dd></div>`:""}
+      ${f.decision_note&&!(!admin&&f.status==="ajuste")?`<div><dt>${noteLbl}</dt><dd>${h(f.decision_note)}</dd></div>`:""}
     </dl>${rhFeriasHist(f)}${act?`<div class="actions">${act}${stepsHTML(RH.steps[k]||[])}</div>`:""}</div>`:""}</div>`;
 }
 function rhColetivasProx(){ const t=todayISO(); return (RH.coletivas||[]).filter(c=>c.end_date>=t); }
@@ -323,7 +352,8 @@ function rhFerias(v){
     <div class="notice" style="border-left-color:var(--brand-2)">${regras.length?`<strong>Regras definidas pelo RH:</strong> ${h(regras.join("; "))}.`:`O RH ainda não cadastrou regras de férias no portal. Confirme as condições com o RH antes de pedir.`}
       ${RH.cfg.ferias_observacao?`<div style="margin-top:6px;white-space:pre-wrap">${rhPre(RH.cfg.ferias_observacao)}</div>`:""}</div>
     ${f.open?`<form class="sheet" id="rh-ferias-form" novalidate>
-      <div class="bar"><h2>${f.id?"Editar rascunho":"Solicitar férias"}</h2></div>
+      <div class="bar"><h2>${f.ajuste?"Ajustar e reenviar":f.id?"Editar rascunho":"Solicitar férias"}</h2></div>
+      ${f.ajuste&&f.ajusteNota?`<div class="notice"><strong>O RH pediu um ajuste:</strong> ${h(f.ajusteNota)}</div>`:""}
       <div class="fields">
         <div class="field"><label for="rhf-start">Data de início</label><input type="date" id="rhf-start" data-rhff="start" min="${todayISO()}" value="${rhV(f,"start")}" ${busy}>${er("start")}</div>
         <div class="field"><label for="rhf-days">Quantidade de dias</label><input type="number" id="rhf-days" data-rhff="days" min="1" max="60" value="${rhV(f,"days")}" ${busy}>
@@ -333,7 +363,7 @@ function rhFerias(v){
       ${e.submit?`<div class="notice err" style="margin:16px 0 0">${h(e.submit)}</div>`:""}
       <div class="formfoot"><button type="button" class="btn" data-rhact="ferias-cancel" ${busy}>Cancelar</button>
         <button type="button" class="btn" data-rhact="ferias-draft" ${busy}>Salvar rascunho</button>
-        <button type="submit" class="btn primary" ${busy}>${RH.busy.form?"Enviando…":"Enviar para aprovação"}</button></div>
+        <button type="submit" class="btn primary" ${busy}>${RH.busy.form?"Enviando…":f.ajuste?"Reenviar para aprovação":"Enviar para aprovação"}</button></div>
     </form>`:""}
     <h3>Minhas solicitações</h3>
     ${mine.length?mine.map(x=>rhFeriasItem(x,false)).join(""):`<div class="empty">Você ainda não pediu férias pelo portal.</div>`}`;
@@ -485,7 +515,7 @@ function rhDocs(v){
 /* ---------- área do RH ---------- */
 function rhAdmin(v){
   const sub=`<div class="rh-sub" role="tablist">${RH_ADMIN_TABS.map(([k,l])=>`<button data-rhatab="${k}" ${RH.atab===k?'aria-current="page"':""}>${h(l)}${k==="a-ferias"&&RH.ferias.filter(f=>f.status==="pendente").length?` <span class="count">${RH.ferias.filter(f=>f.status==="pendente").length}</span>`:""}</button>`).join("")}</div>`;
-  const body = { "a-coletivas":rhAColetivas, "a-ferias":rhAFerias, "a-colab":rhAColab, "a-eventos":rhAEventos, "a-vr":rhAVr, "a-benef":rhABenef, "a-docs":rhADocs, "a-regras":rhARegras }[RH.atab]();
+  const body = { "a-cal":rhACal, "a-emails":rhAEmails, "a-coletivas":rhAColetivas, "a-ferias":rhAFerias, "a-colab":rhAColab, "a-eventos":rhAEventos, "a-vr":rhAVr, "a-benef":rhABenef, "a-docs":rhADocs, "a-regras":rhARegras }[RH.atab]();
   preserveFocus(()=>{ v.innerHTML=`<div class="bar"><h2>Gestão do RH</h2><button class="btn" data-action="refresh">Atualizar</button></div>${sub}${body}`; });
 }
 function rhAColetivas(){
@@ -513,9 +543,52 @@ async function rhSaveColetiva(){
   if(res.error){ RH.steps.cl=[rhErr(res.error)]; render(); return; }
   RH.cl=null; RH.steps.cl=[]; await rhAfter("Férias coletivas salvas.");
 }
+function rhACal(){
+  const now=new Date(todayISO()+"T12:00:00");
+  if(!RH.calYM) RH.calYM={y:now.getFullYear(), m:now.getMonth()+1};
+  const {y,m}=RH.calYM, pad=n=>String(n).padStart(2,"0");
+  const first=`${y}-${pad(m)}-01`, last=`${y}-${pad(m)}-${pad(new Date(y,m,0).getDate())}`;
+  const vis=RH.ferias.filter(f=>["aprovada","pendente","ajuste"].includes(f.status) && f.start_date<=last && f.end_date>=first)
+    .sort((a,b)=>a.start_date.localeCompare(b.start_date));
+  const cols=(RH.coletivas||[]).filter(c=>c.start_date<=last && c.end_date>=first);
+  const nameOf=f=>((f.requester&&f.requester.full_name)||"").split(" ")[0]||"—";
+  const lead=(new Date(y,m-1,1).getDay()+6)%7, nd=new Date(y,m,0).getDate(), today=todayISO();
+  const cells=[];
+  for(let i=0;i<lead;i++) cells.push(`<div class="cal-c out" aria-hidden="true"></div>`);
+  for(let d=1; d<=nd; d++){
+    const iso=`${y}-${pad(m)}-${pad(d)}`, wd=(lead+d-1)%7;
+    const fs=vis.filter(f=>f.start_date<=iso && f.end_date>=iso), cs=cols.filter(c=>c.start_date<=iso && c.end_date>=iso);
+    const chips=[...cs.map(c=>`<span class="cal-chip col" title="${h(c.titulo)}">${h(c.titulo)}</span>`),
+      ...fs.slice(0,4).map(f=>`<button type="button" class="cal-chip ${f.status==="aprovada"?"ok":"req"}" data-rhcal="${h(f.id)}" title="${h((f.requester&&f.requester.full_name)||"")} · ${h(RH_FER_STATUS[f.status])} · ${h(fmtDate(f.start_date))} a ${h(fmtDate(f.end_date))}">${h(nameOf(f))}</button>`)];
+    if(fs.length>4) chips.push(`<span class="cal-more">+${fs.length-4}</span>`);
+    cells.push(`<div class="cal-c${wd>=5?" wk":""}${iso===today?" today":""}"><span class="cal-d">${d}</span>${chips.join("")}</div>`);
+  }
+  return `<div class="cal-top"><div class="rh-month"><button class="btn" data-rhcalm="-1" aria-label="Mês anterior">‹</button><strong>${RH_MONTHS[m-1]} de ${y}</strong><button class="btn" data-rhcalm="1" aria-label="Próximo mês">›</button>${y===now.getFullYear()&&m===now.getMonth()+1?"":`<button class="btn link" data-rhcalm="0">Hoje</button>`}</div>
+      <div class="cal-leg"><span><i class="ok"></i>Aprovadas</span><span><i class="req"></i>Solicitadas (pendentes ou em ajuste)</span><span><i class="col"></i>Férias coletivas</span></div></div>
+    <div class="cal-wrap"><div class="cal" role="grid" aria-label="Férias de ${RH_MONTHS[m-1]} de ${y}">
+      ${["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(d=>`<div class="cal-h" role="columnheader">${d}</div>`).join("")}${cells.join("")}</div></div>
+    <h3>Neste mês</h3>
+    ${vis.length?vis.map(f=>`<button type="button" class="cal-row" data-rhcal="${h(f.id)}"><i class="${f.status==="aprovada"?"ok":"req"}"></i><span><strong>${h((f.requester&&f.requester.full_name)||"")}</strong> · ${h(fmtDate(f.start_date))} a ${h(fmtDate(f.end_date))}</span>${rhSt(f.status,RH_FER_STATUS)}</button>`).join("")
+      :`<p class="muted small">Nenhuma férias aprovada ou solicitada neste mês.</p>`}`;
+}
+function rhAEmails(){
+  if(!RH.emailsOk) return `<div class="notice">A fila de e-mails ainda não está ativa no banco. Rode o arquivo atualizacao-ferias.sql no SQL Editor do Supabase.</div>`;
+  const pend=RH.emails.filter(e=>e.status!=="enviado");
+  return `<div class="notice" style="border-left-color:var(--brand-2)">Uma semana antes das férias aprovadas, o portal gera automaticamente um e-mail de “Boas férias” com o checklist e também avisa a pessoa no sino. O envio automático do e-mail depende do provedor de e-mail (veja o guia). Enquanto ele não estiver ligado, abra cada e-mail aqui e envie pelo seu Outlook.</div>
+    <div class="formfoot" style="justify-content:flex-start;margin:0 0 14px"><button class="btn" data-rhact="emails-gerar" ${RH.busy.em?"disabled":""}>${RH.busy.em?"Verificando…":"Verificar lembretes agora"}</button></div>
+    ${stepsHTML(RH.steps.em||[])}
+    <h3 style="margin-top:0">Aguardando envio (${pend.length})</h3>
+    ${pend.length?pend.map(e=>rhEmailRow(e)).join(""):`<p class="muted small">Nenhum e-mail pendente.</p>`}
+    ${RH.emails.some(e=>e.status==="enviado")?`<h3>Enviados</h3>${RH.emails.filter(e=>e.status==="enviado").slice(0,30).map(e=>rhEmailRow(e)).join("")}`:""}`;
+}
+function rhEmailRow(e){
+  const mailto=`mailto:${encodeURIComponent(e.para)}?subject=${encodeURIComponent(e.assunto)}&body=${encodeURIComponent(e.corpo_texto)}`;
+  return `<div class="rh-item"><div class="rh-item-h" style="cursor:default;flex-wrap:wrap"><span><span class="t">${h(e.nome||e.para)}</span><span class="s"> · ${h(e.assunto)} · ${h(fmtWhen(e.criado_em))}</span>${e.status==="erro"?`<br><span class="err">${h(e.erro||"Erro no envio")}</span>`:""}</span>
+    <span style="display:flex;gap:10px;align-items:center">${e.status==="enviado"?`<span class="muted small">Enviado ${h(fmtWhen(e.enviado_em))}</span>`:`<a class="btn" href="${h(mailto)}">Abrir no e-mail</a><button class="btn" data-rhemsent="${h(e.id)}">Marcar enviado</button>`}</span></div></div>`;
+}
 function rhAFerias(){
   const fl=RH.filt, list=RH.ferias.filter(f=>fl==="todas" ? f.status!=="rascunho" : f.status===fl);
-  const opts=[["pendente","Pendentes"],["aprovada","Aprovadas"],["rejeitada","Rejeitadas"],["cancelada","Canceladas"],["todas","Todas"]];
+  const opts=[["pendente","Pendentes"],["ajuste","Em ajuste"],["aprovada","Aprovadas"],["rejeitada","Não aprovadas"],["cancelada","Canceladas"],["todas","Todas"]];
   return `<div class="rh-sub" style="border:0;padding:0">${opts.map(([k,l])=>`<button data-rhfilt="${k}" ${fl===k?'aria-current="page"':""}>${l}</button>`).join("")}</div>
     ${list.length?list.map(f=>rhFeriasItem(f,true)).join(""):`<div class="empty">Nenhuma solicitação neste filtro.</div>`}`;
 }
@@ -634,7 +707,9 @@ async function rhSaveFerias(status){
   else if(status==="pendente" && regras.ferias_max_dias && days>regras.ferias_max_dias) err.days=`O máximo é de ${regras.ferias_max_dias} dias.`;
   RH.ferr=err; if(Object.keys(err).length){ render(); return; }
   RH.busy.form=true; render();
-  const entry={at:new Date().toISOString(), by_name:S.profile.full_name, action:status, comment:""};
+  const prev = f.id ? RH.ferias.find(x=>x.id===f.id) : null;
+  const reenvio = prev && prev.status==="ajuste" && status==="pendente";
+  const entry={at:new Date().toISOString(), by_name:S.profile.full_name, action: reenvio?"reenviada":status, comment:""};
   let res;
   if(f.id){ const old=RH.ferias.find(x=>x.id===f.id);
     res=await sb.from("ferias").update({start_date:f.start, days, notes:(f.notes||"").trim()||null, status, history:[...((old&&old.history)||[]), entry]}).eq("id",f.id);
@@ -642,25 +717,25 @@ async function rhSaveFerias(status){
   RH.busy.form=false;
   if(res.error){ RH.ferr={submit:rhErr(res.error)}; render(); return; }
   RH.form={}; RH.ferr={};
-  await rhAfter(status==="pendente" ? "Pedido de férias enviado ao RH. Você será avisado quando for analisado." : "Rascunho salvo.");
+  await rhAfter(reenvio ? "Pedido ajustado e reenviado ao RH." : status==="pendente" ? "Pedido de férias enviado ao RH. Você será avisado quando for analisado." : "Rascunho salvo.");
 }
 async function rhFeriasAct(id, kind){
   const f=RH.ferias.find(x=>x.id===id); if(!f) return;
   const k="f"+id;
-  if(kind==="editar"){ RH.form={open:true, id:f.id, start:f.start_date, days:String(f.days), notes:f.notes||""}; RH.ferr={}; render(); window.scrollTo({top:0}); return; }
+  if(kind==="editar"){ RH.form={open:true, id:f.id, ajuste:f.status==="ajuste", ajusteNota:f.decision_note||"", start:f.start_date, days:String(f.days), notes:f.notes||""}; RH.ferr={}; render(); window.scrollTo({top:0}); return; }
   if(kind==="enviar"){ RH.form={id:f.id, start:f.start_date, days:String(f.days), notes:f.notes||""}; return rhSaveFerias("pendente"); }
   const note=(RH.note[k]||"").trim(), admin=f.requester_id!==myId() || (RH.isRH() && RH.tab==="admin");
-  if(kind==="rejeitada" && note.length<3){ RH.steps[k]=["Escreva a justificativa da rejeição."]; render(); return; }
+  if((kind==="rejeitada"||kind==="ajuste") && note.length<3){ RH.steps[k]=[kind==="ajuste"?"Escreva o que o colaborador precisa ajustar.":"Escreva o motivo da não aprovação."]; render(); return; }
   if(kind==="cancelada" && admin && f.status==="aprovada" && note.length<3){ RH.steps[k]=["Explique o motivo do cancelamento."]; render(); return; }
   if(kind==="cancelada" && !admin && !confirm(f.status==="rascunho"?"Descartar este rascunho?":"Cancelar esta solicitação de férias?")) return;
   RH.busy[k]=true; RH.steps[k]=["Salvando…"]; render();
   const upd={status:kind, history:[...(f.history||[]), {at:new Date().toISOString(), by_name:S.profile.full_name, action:kind, comment:note}]};
-  if(admin && (kind==="aprovada"||kind==="rejeitada"||kind==="cancelada")) upd.decision_note=note||null;
+  if(admin && (kind==="aprovada"||kind==="rejeitada"||kind==="ajuste"||kind==="cancelada")) upd.decision_note=note||null;
   const { error } = await sb.from("ferias").update(upd).eq("id",id);
   RH.busy[k]=false;
   if(error){ RH.steps[k]=[rhErr(error)]; render(); return; }
   RH.steps[k]=[]; RH.note[k]="";
-  await rhAfter({aprovada:"Férias aprovadas.", rejeitada:"Férias rejeitadas.", cancelada:"Solicitação cancelada."}[kind]);
+  await rhAfter({aprovada:"Férias aprovadas.", rejeitada:"Pedido não aprovado. O colaborador foi avisado.", ajuste:"Pedido devolvido para ajuste. O colaborador foi avisado.", cancelada:"Solicitação cancelada."}[kind]);
 }
 async function rhSaveColab(uid){
   const e=RH.ce[uid], k="c"+uid, fk="foto:"+uid; RH.busy[k]=true; RH.steps[k]=[]; render();
@@ -803,6 +878,10 @@ RH.click = function(t){
   if(d.rhmonth!=null){ const n=Number(d.rhmonth); if(n===0) RH.ym=null; else { let {y,m}=RH.ym; m+=n; if(m<1){m=12;y--;} if(m>12){m=1;y++;} RH.ym={y,m}; } render(); return true; }
   if(d.rhfotox){ const uid=d.rhfotox, fk="foto:"+uid; if(RH.ce[uid]) RH.ce[uid].photo_path=null; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); delete RH.files[fk]; delete RH.files[fk+"_url"]; render(); return true; }
   if(d.rhcedit){ const c=RH.colabs.find(x=>x.user_id===d.rhcedit)||{}; RH.ce[d.rhcedit]={photo_path:c.photo_path||null, birth_date:c.birth_date||"", admission_date:c.admission_date||"", department:c.department||""}; render(); return true; }
+  if(d.rhcal){ const f=RH.ferias.find(x=>x.id===d.rhcal); if(!f) return true; RH.atab="a-ferias"; RH.filt=f.status; RH.open["f"+f.id]=true; render();
+    setTimeout(()=>{ const el=document.getElementById("fer-"+f.id); if(el) el.scrollIntoView({block:"center", behavior:"smooth"}); },30); return true; }
+  if(d.rhcalm!=null){ const n=Number(d.rhcalm); if(n===0) RH.calYM=null; else { let {y,m}=RH.calYM; m+=n; if(m<1){m=12;y--;} if(m>12){m=1;y++;} RH.calYM={y,m}; } render(); return true; }
+  if(d.rhemsent){ sb.from("rh_emails").update({status:"enviado", enviado_em:new Date().toISOString()}).eq("id",d.rhemsent).then(r=>r.error?(S.flash={kind:"warn",text:rhErr(r.error)},render()):rhAfter("E-mail marcado como enviado.")); return true; }
   if(d.rhcled){ RH.cl={...RH.coletivas.find(x=>x.id===d.rhcled)}; RH.steps.cl=[]; render(); window.scrollTo({top:0}); return true; }
   if(d.rhcldel){ const c=RH.coletivas.find(x=>x.id===d.rhcldel); if(c && confirm(`Excluir “${c.titulo}”?`)) sb.from("ferias_coletivas").delete().eq("id",c.id).then(r=>r.error?(S.flash={kind:"warn",text:rhErr(r.error)},render()):rhAfter("Férias coletivas excluídas.")); return true; }
   if(d.rhcno){ const fk="foto:"+d.rhcno; if(RH.files[fk+"_url"]) URL.revokeObjectURL(RH.files[fk+"_url"]); delete RH.files[fk]; delete RH.files[fk+"_url"]; delete RH.ce[d.rhcno]; render(); return true; }
@@ -821,6 +900,8 @@ RH.click = function(t){
   else if(a==="ferias-cancel"){ RH.form={}; RH.ferr={}; render(); }
   else if(a==="ferias-draft"){ rhSaveFerias("rascunho"); }
   else if(a==="past"){ RH.showPast=!RH.showPast; render(); }
+  else if(a==="emails-gerar"){ RH.busy.em=true; RH.steps.em=[]; render();
+    sb.rpc("rh_ferias_lembretes").then(async r=>{ RH.busy.em=false; if(r.error){ RH.steps.em=[rhErr(r.error)]; render(); return; } await rhAfter(r.data?`${r.data} ${r.data===1?"lembrete gerado":"lembretes gerados"}.`:"Nenhuma férias começa nos próximos 7 dias sem lembrete."); }); }
   else if(a==="cl-new"){ RH.cl={}; RH.steps.cl=[]; render(); }
   else if(a==="cl-cancel"){ RH.cl=null; render(); }
   else if(a==="cl-save"){ rhSaveColetiva(); }
