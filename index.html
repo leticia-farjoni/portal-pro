@@ -407,8 +407,8 @@ h2 .favstar{font-size:24px;margin-left:6px}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="rh.js?v=2026-10-27b"></script>
-<script src="banco-horas.js?v=2026-10-27b"></script>
+<script src="rh.js?v=2026-10-27c"></script>
+<script src="banco-horas.js?v=2026-10-27c"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -1401,6 +1401,7 @@ function renderHome(v){
     const pend=mine.filter(f=>f.status==="pendente").length;
     const col=(RH.coletivas||[]).filter(c=>c.end_date>=today).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
     const parts=[];
+    if(mine.some(f=>f.status==="ajuste")) parts.push(`<strong style="color:var(--warn)">O RH pediu um ajuste no seu pedido</strong>`);
     if(prox) parts.push(`Suas: ${h(fmtDate(prox.start_date).slice(0,5))} a ${h(fmtDate(prox.end_date).slice(0,5))}`);
     else if(pend) parts.push(`${pend} ${pend===1?"pedido aguardando":"pedidos aguardando"} o RH`);
     if(col) parts.push(`Coletivas: ${h(fmtDate(col.start_date).slice(0,5))} a ${h(fmtDate(col.end_date).slice(0,5))}`);
